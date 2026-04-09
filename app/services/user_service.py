@@ -8,6 +8,7 @@ def user_helper(user) -> dict:
     return {
         "id": str(user["_id"]),
         "name": user.get("name"),
+        "username": user.get("username"),
         "email": user.get("email"),
         "empid": user.get("empid"),
         "image": user.get("image"),
@@ -47,9 +48,9 @@ async def get_all_users():
         users.append(user_helper(user))
     return users
 
-async def get_user_by_email(email: str):
+async def get_user_by_id(user_id: str):
     db = get_database()
-    user = await db.users.find_one({"email": email})
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
     if user:
         return user_helper(user)
     return None
@@ -76,3 +77,8 @@ async def update_user(user_id: str, data: UserUpdate):
             return await get_user_by_id(user_id)
             
     return await get_user_by_id(user_id)
+
+async def delete_user(user_id: str):
+    db = get_database()
+    delete_result = await db.users.delete_one({"_id": ObjectId(user_id)})
+    return delete_result.deleted_count == 1

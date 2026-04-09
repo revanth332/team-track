@@ -5,6 +5,7 @@ from datetime import date, time
 # Base model containing the common fields
 class UserBase(BaseModel):
     name: str = Field(..., example="Jane Doe")
+    username: str = Field(..., example="jdoe")
     email: str = Field(..., example="jane.doe@company.com")
     empid: str = Field(..., example="6062")
     image: Optional[str] = Field(default=None, example="https://s3.aws.com/profile.jpg")
@@ -25,6 +26,7 @@ class UserCreate(UserBase):
 # Schema for updating a user (PUT/PATCH)
 class UserUpdate(BaseModel):
     name: Optional[str] = None
+    username: Optional[str] = None
     empid: Optional[str] = None
     image: Optional[str] = None
     role: Optional[str] = None
