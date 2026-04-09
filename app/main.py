@@ -1,15 +1,24 @@
-# app/main.py
 from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from app.core.database import connect_to_mongo, close_mongo_connection
 from app.api.v1.router import api_router
+from app.core.config import settings
+from fastapi.middleware.cors import CORSMiddleware
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await connect_to_mongo()
-    yield
-    await close_mongo_connection()
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION
+)
 
-app = FastAPI(title="Team MVP API", lifespan=lifespan)
+# Set up CORS (Important for production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+@app.get("/")
+async def root():
+    return {"message": "Team Management API is running on Vercel!"}
