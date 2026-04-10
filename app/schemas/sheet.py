@@ -12,3 +12,6 @@ class GetSheetRequest(BaseModel):
     header_row: Optional[int] = 1
     page: Optional[int] = 1
     per_page: Optional[int] = 100
+    name: Optional[str] = None
+    year: Optional[int] = None
+    month: Optional[int] = None

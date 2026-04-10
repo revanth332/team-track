@@ -5,7 +5,6 @@ from datetime import date, time, datetime
 class ShiftBase(BaseModel):
     name: str = Field(..., example="Jane Doe")
     empid: str = Field(..., example="EMP-1042")
-    id: str = Field(..., example="1234567890")
     name: str = Field(..., example="Jane Doe")
     empid: str = Field(..., example="EMP-1042")
     date: str = Field(..., example="2026-04-15")
@@ -20,18 +19,6 @@ class ShiftBase(BaseModel):
     manager_remarks: Optional[str] = Field(default=None, example="Manager's comments")
     hr_lead_comments: Optional[str] = Field(default=None, example="HR/Lead's comments")
 
-class ShiftCreate(ShiftBase):
-    pass
-
-class ShiftUpdate(BaseModel):
-    name: Optional[str] = None
-    empid: Optional[str] = None
-    username: Optional[str] = None
-    date_of_change: Optional[date] = None
-    actual_shift_start: Optional[time] = None
-    actual_shift_end: Optional[time] = None
-    worked_shift_start: Optional[time] = None
-    worked_shift_end: Optional[time] = None
 
 class ShiftResponse(BaseModel):
     status: str

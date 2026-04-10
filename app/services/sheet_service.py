@@ -6,10 +6,8 @@ from app.core.token_manager import TokenManager
 from app.schemas.sheet import UpdateSheetRequest, GetSheetRequest
 from dotenv import load_dotenv
 import requests
-
-from app.schemas.shift import ShiftCreate
-from app.schemas.shift import ShiftCreate
 from app.services.shift_service import shift_helper
+from datetime import datetime
 
 # Load environment variables from .env
 load_dotenv()
@@ -25,7 +23,6 @@ SHEET_RESOURCE_ID = os.getenv("SHEET_RESOURCE_ID")
 SHEET_NAME = os.getenv("SHEET_NAME")
 
 field_mapping = {
-    "id":"#",
     "name": "Employee Name",
     "empid": "Emp ID",
     "date": "Date",
@@ -114,6 +111,9 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
         "page": str(request.page),
         "per_page": str(request.per_page)
     }
+
+    if request.name:
+        payload["criteria"] = f'"Name" == "{request.name}"'
     
     # 4. Make the request
     response = requests.get(url, headers=headers, params=payload,verify=False)
@@ -123,19 +123,48 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
         records = data.get("records", [])
         shifts = [shift_helper(record) for record in records]
 
-        # Zoho returns a "status": "success" and the data inside a "records" key
-        # if data.get("status") == "success":
-        #     return {
-        #         "status": "success",
-        #         "count": len(data.get("records", [])),
-        #         "data": data.get("records", [])
-        #     }
-        # else:
-        #     return data
+        if request.year or request.month:
+            filtered_records =[]
+            
+            for row in shifts:
+                # Get the date string from the row. 
+                # (Make sure "Date" matches your exact column header case)
+                date_str = row.get("date") 
+                print(date_str,"Before") 
+                if not date_str:
+                    continue # Skip rows with empty dates
+                    
+                try:
+                    # Parse the date string into a Python datetime object
+                    # NOTE: Change "%d-%m-%Y" to match how dates look in your sheet!
+                    # Examples: 
+                    # "25/12/2026" -> "%d/%m/%Y"
+                    # "2026-12-25" -> "%Y-%m-%d"
+                    row_date = datetime.strptime(date_str, "%d/%m/%Y")
+                    print(date_str, row_date,"# Debugging output to verify parsing") # Debugging output to verify parsing
+                    
+                    # Check Year condition
+                    match_year = (row_date.year == request.year) if request.year else True
+                    
+                    # Check Month condition
+                    match_month = (row_date.month == request.month) if request.month else True
+                    
+                    # If both match, keep the row
+                    if match_year and match_month:
+                        filtered_records.append(row)
+                        
+                except ValueError:
+                    # If a date fails to parse, just skip it or log it
+                    print(f"Warning: Could not parse date format for: {date_str}")
+                    continue
+            
+            # Replace records with our fully filtered list
+            records = filtered_records
+
         return {
                  "status": "success",
                  "count": len(data.get("records", [])),
-                 "data": shifts
+                 "data": records
              }
     else:
         raise HTTPException(
