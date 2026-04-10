@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1 import users
+from app.api.v1 import shifts, users
 
 # Create the master router for version 1 of the API
 api_router = APIRouter()
@@ -12,6 +12,7 @@ api_router.include_router(
     prefix="/users", 
     tags=["Users"]
 )
+api_router.include_router(shifts.router, prefix="/shifts", tags=["Shift Delays"])
 
 # api_router.include_router(
 #     goals.router, 

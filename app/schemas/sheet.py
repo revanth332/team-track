@@ -1,12 +1,14 @@
 # Pydantic model for request validation
-from typing import Any, Dict, List, Optional
-
-from pydantic.v1 import BaseModel
+from typing import Optional
+from pydantic import BaseModel
+from app.schemas.shift import ShiftBase
 
 
 class UpdateSheetRequest(BaseModel):
-    resource_id: str
-    worksheet_name: str
-    method: str = "worksheet.records.add" # Default to appending rows
     header_row: Optional[int] = 1
-    json_data: List[Dict[str, Any]] # Takes a list of dictionaries
+    record: ShiftBase
+
+class GetSheetRequest(BaseModel):
+    header_row: Optional[int] = 1
+    page: Optional[int] = 1
+    per_page: Optional[int] = 100
