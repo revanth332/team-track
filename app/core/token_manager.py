@@ -3,6 +3,10 @@ import time
 import requests
 from fastapi import FastAPI
 from dotenv import load_dotenv
+    # app/core/security.py
+import jwt
+from datetime import datetime, timedelta, timezone
+from app.core.config import settings
 
 # Load environment variables from .env
 load_dotenv()
@@ -21,7 +25,7 @@ class TokenManager:
         self.access_token = None
         self.expires_at = 0
 
-    def get_token(self) -> str:
+    def get_zoho_token(self) -> str:
         # Return cached token if it is still valid
         if time.time() < self.expires_at:
             return self.access_token
@@ -46,4 +50,17 @@ class TokenManager:
             return self.access_token
         else:
             raise Exception(f"Failed to refresh token: {response_data}")
+
+
+    def get_jwt_token(self,data: dict):
+        # Make a copy of the data so we don't modify the original
+        to_encode = data.copy()
+        
+        # Calculate expiration time
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        to_encode.update({"exp": expire})
+        
+        # Generate the JWT token string
+        encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        return encoded_jwt
 

@@ -1,34 +1,15 @@
 from fastapi import APIRouter
-from app.api.v1 import shifts, updates, users
+from app.api.v1 import ideas, shifts, updates, users, auth
 
 # Create the master router for version 1 of the API
 api_router = APIRouter()
-
-# Include sub-routers from different modules
-# We define the prefixes here so they are managed centrally
 
 api_router.include_router(
     users.router, 
     prefix="/users", 
     tags=["Users"]
 )
+api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(shifts.router, prefix="/shifts", tags=["Shift Delays"])
 api_router.include_router(updates.router, prefix="/updates", tags=["Weekly Updates"])
-
-# api_router.include_router(
-#     goals.router, 
-#     prefix="/goals", 
-#     tags=["Quarterly Goals"]
-# )
-
-# api_router.include_router(
-#     shifts.router, 
-#     prefix="/shifts", 
-#     tags=["Shift Delays & Changes"]
-# )
-
-# api_router.include_router(
-#     updates.router, 
-#     prefix="/updates", 
-#     tags=["Weekly Status Updates"]
-# )
+api_router.include_router(ideas.router, prefix="/ideas", tags=["Ideas Backlog"])

@@ -4,9 +4,12 @@ from pydantic import BaseModel
 from app.schemas.shift import ShiftBase
 
 
-class UpdateSheetRequest(BaseModel):
+class CreateSheetRequest(BaseModel):
     header_row: Optional[int] = 1
     record: ShiftBase
+
+class UpdateSheetRequest(CreateSheetRequest):
+    row_index: int = 0
 
 class GetSheetRequest(BaseModel):
     header_row: Optional[int] = 1

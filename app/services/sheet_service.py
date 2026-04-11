@@ -3,7 +3,7 @@ import os
 import json
 from fastapi import APIRouter, HTTPException
 from app.core.token_manager import TokenManager
-from app.schemas.sheet import UpdateSheetRequest, GetSheetRequest
+from app.schemas.sheet import CreateSheetRequest, UpdateSheetRequest, GetSheetRequest
 from dotenv import load_dotenv
 import requests
 from app.services.shift_service import shift_helper
@@ -39,14 +39,14 @@ field_mapping = {
 }
 
 
-async def update_zoho_sheet(request: UpdateSheetRequest):
+async def add_row_zoho_sheet(request: CreateSheetRequest):
     """
     Endpoint to update a Zoho Sheet.
     By default, it uses 'worksheet.records.add' to append new rows mapped to headers.
     """
     # 1. Ensure we have a valid access token
     try:
-        access_token = token_manager.get_token()
+        access_token = token_manager.get_zoho_token()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
         
@@ -92,7 +92,7 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
     """
     # 1. Get a valid access token
     try:
-        access_token = token_manager.get_token()
+        access_token = token_manager.get_zoho_token()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
         
@@ -171,3 +171,30 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
             status_code=response.status_code, 
             detail=f"Zoho API Error: {response.text}"
         )
+    
+async def update_row_zoho_sheet(request: UpdateSheetRequest):
+    """
+    Updates a specific row index (e.g., row 5) with new_data.
+    """
+    access_token = token_manager.get_zoho_token()
+    url = f"https://sheet.zoho.{ZOHO_DOMAIN}/api/v2/{SHEET_RESOURCE_ID}"
+    
+    headers = {"Authorization": f"Zoho-oauthtoken {access_token}"}
+
+    shift_record = {}
+    for key, value in request.request.record.model_dump().items():
+        zoho_field = field_mapping.get(key)
+        if zoho_field:
+            shift_record[zoho_field] = value
+
+    payload = {
+        "method": "worksheet.records.add",
+        "worksheet_name": SHEET_NAME,
+        "row_index": str(request.row_index),
+        "json_data": json.dumps([shift_record])
+    }
+
+    
+    response = requests.post(url, headers=headers, data=payload)
+    
+    return response.json()

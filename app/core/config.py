@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     DATABASE_NAME: str = "team-track"
     
     # --- Security & JWT (For later) ---
+    ADMIN_PASSKEY: str = "admin_secret_123" # Default, override in .env
+    USER_PASSKEY: str = "team_secret_123"
+    
     SECRET_KEY: str = "SUPER_SECRET_KEY_CHANGE_ME" 
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
