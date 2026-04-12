@@ -13,9 +13,10 @@ def idea_helper(idea_doc) -> dict:
         "title": idea_doc.get("title"),
         "description": idea_doc.get("description"),
         "links": idea_doc.get("links",[]),
-        "approved": idea_doc.get("approved"),
+        "status": idea_doc.get("status"),
         "blog_assignee": idea_doc.get("blog_assignee"),
         "video_assignee": idea_doc.get("video_assignee"),
+        "added_by": idea_doc.get("added_by"),
         "created_at": idea_doc.get("created_at")
     }
 
@@ -50,7 +51,7 @@ async def update_idea(idea_id: str, idea_data: IdeaUpdate):
     
     updated_idea = await db.ideas.find_one({"_id": ObjectId(idea_id)})
     
-    if updated_idea and updated_idea.get("approved") == True and (idea_data.blog_assignee or idea_data.video_assignee):
+    if updated_idea and updated_idea.get("status") == "Approved" and (idea_data.blog_assignee or idea_data.video_assignee):
         
         # Check if a goal already exists for this idea to prevent duplicates
         existing_goal = await db.goals.find_one({"idea_id": idea_id})
@@ -74,7 +75,6 @@ async def update_idea(idea_id: str, idea_data: IdeaUpdate):
             
             # Create the auto-generated Goal payload
             new_goal = GoalCreate(
-                username=updated_idea.get("assigned_to", "system"),
                 assignee=assignee,
                 title=updated_idea.get("title"),
                 description=updated_idea.get("description"),
