@@ -23,16 +23,16 @@ async def list_all_ideas():
     """
     return await idea_service.get_all_ideas()
 
-@router.put("/{idea_id}", response_model=IdeaResponse)
+@router.put("/{idea_id}/", response_model=IdeaResponse)
 async def modify_idea(
-    idea_id: str, 
+    idea_id: str,
     idea: IdeaUpdate = Body(...),
     current_user: dict = Depends(get_current_user)
 ):
     """
     Update an idea's title, description, or links.
     """
-    updated_idea = await idea_service.update_idea(idea_id, idea)
+    updated_idea = await idea_service.update_idea(idea_id,idea)
     if not updated_idea:
         raise HTTPException(status_code=404, detail="Idea not found")
     return updated_idea

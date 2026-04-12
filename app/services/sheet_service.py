@@ -117,6 +117,7 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
     
     # 4. Make the request
     response = requests.get(url, headers=headers, params=payload,verify=False)
+    print(response.json(),"# Debugging output to verify Zoho response")
     
     if response.status_code == 200:
         data = response.json()
@@ -172,7 +173,7 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
             detail=f"Zoho API Error: {response.text}"
         )
     
-async def update_row_zoho_sheet(request: UpdateSheetRequest):
+async def update_row_zoho_sheet(row_index: int, request: UpdateSheetRequest, emp_id: str, date: str):
     """
     Updates a specific row index (e.g., row 5) with new_data.
     """
@@ -182,19 +183,22 @@ async def update_row_zoho_sheet(request: UpdateSheetRequest):
     headers = {"Authorization": f"Zoho-oauthtoken {access_token}"}
 
     shift_record = {}
-    for key, value in request.request.record.model_dump().items():
+    for key, value in request.record.model_dump().items():
         zoho_field = field_mapping.get(key)
         if zoho_field:
             shift_record[zoho_field] = value
+    
+    criteria_str = f'("Emp ID" = "{emp_id}" and "Date" = "{date}")'
 
     payload = {
-        "method": "worksheet.records.add",
+        "method": "worksheet.records.update",
         "worksheet_name": SHEET_NAME,
-        "row_index": str(request.row_index),
-        "json_data": json.dumps([shift_record])
+        "header_row":str(request.header_row),
+        "criteria": criteria_str,
+        "data": json.dumps(shift_record)
     }
 
-    
+    print(payload,"# Debugging output to verify update payload") # Debugging output to verify update payload
     response = requests.post(url, headers=headers, data=payload)
     
     return response.json()

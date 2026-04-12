@@ -6,7 +6,7 @@ from app.schemas.shift import ShiftBase
 
 class CreateSheetRequest(BaseModel):
     header_row: Optional[int] = 1
-    record: ShiftBase
+    record: Optional[ShiftBase] = None
 
 class UpdateSheetRequest(CreateSheetRequest):
     row_index: int = 0

@@ -40,11 +40,13 @@ async def login(credentials: LoginRequest):
             
         # Extract their role from the DB profile (fallback to 'member' if missing)
         role = user.get("role", "member")
+        name = user.get("name", "Unknown User")
         
     # 3. Create the JWT Token payload
     token_payload = {
         "sub": username, # 'sub' is the standard JWT field for the user identity
-        "role": role
+        "role": role,
+        "name":name
     }
     
     # Generate and return the token

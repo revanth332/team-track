@@ -16,4 +16,5 @@ def shift_helper(shift) -> dict:
         "manager_approval": shift.get("Vamsi Nadenlda Approval"),
         "manager_remarks": shift.get("Manager Comments if any"),
         "hr_lead_comments": shift.get("Lead/HR comments"),
+        "row_index": shift.get("row_index")
     }
