@@ -62,45 +62,72 @@ async def update_idea(idea_id: str, idea_data: IdeaUpdate):
     
     if updated_idea and updated_idea.get("status") == "Approved" and (idea_data.blog_assignee or idea_data.video_assignee):
         
-        # Check if a goal already exists for this idea to prevent duplicates
-        existing_goal = await db.goals.find_one({"idea_id": idea_id})
+        # Calculate current quarter & year dynamically
+        current_month = datetime.now().month
+        current_quarter = f"Q{(current_month - 1) // 3 + 1}"
         type = None
         assignee = None
+        assignee_username= None
         if idea_data.blog_assignee:
             type = "blog"
             assignee = idea_data.blog_assignee
             assignee_username = idea_data.blog_assignee_username
+            # Check if a goal already exists for this idea to prevent duplicates
+            existing_goal = await db.goals.find_one({"idea_id": idea_id, "type": type})
+            if not existing_goal:
+            # Convert simple idea links to the Goal link dictionary format
+                idea_links = updated_idea.get("links", [])
+                formatted_links =[{"name": "Idea Reference", "url": link} for link in idea_links]
+                
+                # Create the auto-generated Goal payload
+                new_goal = GoalCreate(
+                    assignee=assignee,
+                    assignee_username=assignee_username,
+                    title=updated_idea.get("title"),
+                    description=updated_idea.get("description"),
+                    links=formatted_links,
+                    type=type, # Defaulting to blog, user can update later
+                    status="Pending",
+                    progress=0,
+                    idea_id=idea_id, # Linking them together!
+                    year=datetime.now().year,
+                    quarter=current_quarter
+                )
+                
+                # Save the new goal
+                await create_goal(new_goal)
         elif idea_data.video_assignee:
             type = "video"
             assignee = idea_data.video_assignee
             assignee_username = idea_data.video_assignee_username
-
-        if not existing_goal:
-            # Convert simple idea links to the Goal link dictionary format
-            idea_links = updated_idea.get("links", [])
-            formatted_links =[{"name": "Idea Reference", "url": link} for link in idea_links]
-            
-            # Calculate current quarter & year dynamically
-            current_month = datetime.now().month
-            current_quarter = f"Q{(current_month - 1) // 3 + 1}"
-            
-            # Create the auto-generated Goal payload
-            new_goal = GoalCreate(
-                assignee=assignee,
-                assignee_username=assignee,
-                title=updated_idea.get("title"),
-                description=updated_idea.get("description"),
-                links=formatted_links,
-                type=type, # Defaulting to blog, user can update later
-                status="Pending",
-                progress=0,
-                idea_id=idea_id, # Linking them together!
-                year=datetime.now().year,
-                quarter=current_quarter
-            )
-            
-            # Save the new goal
-            await create_goal(new_goal)
+            # Check if a goal already exists for this idea to prevent duplicates
+            existing_goal = await db.goals.find_one({"idea_id": idea_id, "type": type})
+            if not existing_goal:
+                # Convert simple idea links to the Goal link dictionary format
+                idea_links = updated_idea.get("links", [])
+                formatted_links =[{"name": "Idea Reference", "url": link} for link in idea_links]
+                
+                # Calculate current quarter & year dynamically
+                current_month = datetime.now().month
+                current_quarter = f"Q{(current_month - 1) // 3 + 1}"
+                
+                # Create the auto-generated Goal payload
+                new_goal = GoalCreate(
+                    assignee=assignee,
+                    assignee_username=assignee_username,
+                    title=updated_idea.get("title"),
+                    description=updated_idea.get("description"),
+                    links=formatted_links,
+                    type=type, # Defaulting to blog, user can update later
+                    status="Pending",
+                    progress=0,
+                    idea_id=idea_id, # Linking them together!
+                    year=datetime.now().year,
+                    quarter=current_quarter
+                )
+                
+                # Save the new goal
+                await create_goal(new_goal)
 
     return idea_helper(updated_idea) if updated_idea else None
 
