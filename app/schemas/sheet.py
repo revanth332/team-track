@@ -18,3 +18,4 @@ class GetSheetRequest(BaseModel):
     name: Optional[str] = None
     year: Optional[int] = None
     month: Optional[int] = None
+    date: Optional[str] = None

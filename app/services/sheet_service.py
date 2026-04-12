@@ -71,7 +71,6 @@ async def add_row_zoho_sheet(request: CreateSheetRequest):
         "json_data": json.dumps([shift_record]) # Zoho expects an array of records
     }
 
-    print(f"Making request to Zoho Sheet API with payload: {url}")
     
     # 4. Make the request to Zoho
     response = requests.post(url, headers=headers, data=payload,verify=False)
@@ -109,6 +108,7 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
         "worksheet_name": SHEET_NAME,
         "header_row": str(request.header_row),
         "page": str(request.page),
+        "criteria": f'("Date" = "{request.date}")' if request.date else None,
         "per_page": str(request.per_page)
     }
 
@@ -142,7 +142,6 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
                     # "25/12/2026" -> "%d/%m/%Y"
                     # "2026-12-25" -> "%Y-%m-%d"
                     row_date = datetime.strptime(date_str, "%d/%m/%Y")
-                    print(date_str, row_date,"# Debugging output to verify parsing") # Debugging output to verify parsing
                     
                     # Check Year condition
                     match_year = (row_date.year == request.year) if request.year else True
