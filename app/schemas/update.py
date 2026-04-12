@@ -19,6 +19,7 @@ class WeeklyUpdateModify(BaseModel):
     week_start_date: Optional[date] = None
     project_info: Optional[dict] = None
 
+
 class WeeklyUpdateResponse(WeeklyUpdateBase):
     id: str
     created_at: datetime

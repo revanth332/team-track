@@ -21,9 +21,8 @@ async def log_shift_change(shift: CreateSheetRequest = Body(...)):
     """
     return await sheet_service.add_row_zoho_sheet(shift)
 
-@router.put("/{row_index}", response_model=ShiftResponse)
+@router.put("/", response_model=ShiftResponse)
 async def update_shift_change(
-    row_index: int, 
     shift: UpdateSheetRequest = Body(...),
     emp_id: str = Query(..., description="Employee ID for verification"),
     date: str = Query(..., description="Date string for verification")
@@ -31,4 +30,4 @@ async def update_shift_change(
     """
     Update an existing shift change.
     """
-    return await sheet_service.update_row_zoho_sheet(row_index, shift, emp_id,date)
+    return await sheet_service.update_row_zoho_sheet(shift, emp_id,date)

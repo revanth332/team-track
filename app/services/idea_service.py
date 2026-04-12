@@ -107,10 +107,6 @@ async def update_idea(idea_id: str, idea_data: IdeaUpdate):
                 idea_links = updated_idea.get("links", [])
                 formatted_links =[{"name": "Idea Reference", "url": link} for link in idea_links]
                 
-                # Calculate current quarter & year dynamically
-                current_month = datetime.now().month
-                current_quarter = f"Q{(current_month - 1) // 3 + 1}"
-                
                 # Create the auto-generated Goal payload
                 new_goal = GoalCreate(
                     assignee=assignee,

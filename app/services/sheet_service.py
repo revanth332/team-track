@@ -172,7 +172,7 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
             detail=f"Zoho API Error: {response.text}"
         )
     
-async def update_row_zoho_sheet(row_index: int, request: UpdateSheetRequest, emp_id: str, date: str):
+async def update_row_zoho_sheet(request: UpdateSheetRequest, emp_id: str, date: str):
     """
     Updates a specific row index (e.g., row 5) with new_data.
     """
