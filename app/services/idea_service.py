@@ -22,6 +22,13 @@ def idea_helper(idea_doc) -> dict:
         "created_at": idea_doc.get("created_at")
     }
 
+async def get_idea_by_id(idea_id: str):
+    db = get_database()
+    if not ObjectId.is_valid(idea_id):
+        return None
+    idea_doc = await db.ideas.find_one({"_id": ObjectId(idea_id)})
+    return idea_helper(idea_doc) if idea_doc else None
+
 async def create_idea(idea_data: IdeaCreate):
     db = get_database()
     idea_dict = idea_data.model_dump()

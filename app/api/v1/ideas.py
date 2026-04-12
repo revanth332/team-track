@@ -23,25 +23,28 @@ async def list_all_ideas():
     """
     return await idea_service.get_all_ideas()
 
-@router.put("/{idea_id}/", response_model=IdeaResponse)
+@router.put("/{idea_id}", response_model=IdeaResponse)
 async def modify_idea(
     idea_id: str,
     idea: IdeaUpdate = Body(...),
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Update an idea's title, description, or links.
-    """
     existing_idea = await idea_service.get_idea_by_id(idea_id)
+
     if idea.status and idea.status not in ["Pending", "Approved", "Rejected"]:
         raise HTTPException(status_code=400, detail="Invalid status value")
-    if idea.blog_assignee and existing_idea.status != "Approved":
+
+    if idea.blog_assignee and existing_idea["status"] != "Approved":
         raise HTTPException(status_code=400, detail="Idea must be approved before assigning")
-    if idea.video_assignee and existing_idea.status != "Approved":
+
+    if idea.video_assignee and existing_idea["status"] != "Approved":
         raise HTTPException(status_code=400, detail="Idea must be approved before assigning")
-    updated_idea = await idea_service.update_idea(idea_id,idea)
+
+    updated_idea = await idea_service.update_idea(idea_id, idea)
+
     if not updated_idea:
         raise HTTPException(status_code=404, detail="Idea not found")
+
     return updated_idea
 
 @router.delete("/{idea_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)])
