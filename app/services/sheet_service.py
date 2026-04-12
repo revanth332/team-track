@@ -159,12 +159,12 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
                     continue
             
             # Replace records with our fully filtered list
-            records = filtered_records
+            shifts = filtered_records
 
         return {
                  "status": "success",
                  "count": len(data.get("records", [])),
-                 "data": records
+                 "data": shifts
              }
     else:
         raise HTTPException(

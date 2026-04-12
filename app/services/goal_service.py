@@ -33,7 +33,7 @@ status_progress_mapping = {
 def goal_helper(goal_doc) -> dict:
     return {
         "id": str(goal_doc["_id"]),
-        "username": goal_doc.get("username"),
+        "assignee_username": goal_doc.get("assignee_username"),
         "assignee": goal_doc.get("assignee"),
         "title": goal_doc.get("title"),
         "description": goal_doc.get("description"),
@@ -41,7 +41,6 @@ def goal_helper(goal_doc) -> dict:
         "type": goal_doc.get("type"),
         "status": goal_doc.get("status"),
         "progress": goal_doc.get("progress", 0),
-        "timeline_value": goal_doc.get("timeline_value", {}),
         "idea_id": goal_doc.get("idea_id"),
         "year": goal_doc.get("year"),
         "quarter": goal_doc.get("quarter"),

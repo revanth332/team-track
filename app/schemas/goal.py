@@ -18,7 +18,7 @@ class GoalBase(BaseModel):
     idea_id: Optional[str] = None
     year: int = Field(..., example=2026)
     quarter: Literal["Q1", "Q2", "Q3", "Q4"] = Field(..., example="Q2")
-    profile_image: Optional[str] = Field(None, example="https://example.com/profile.jpg")
+    assignee_username: Optional[str] = Field(default=None, example="jane_doe")
 
 class GoalCreate(GoalBase):
     pass
@@ -33,7 +33,7 @@ class GoalUpdate(BaseModel):
     progress: Optional[float] = None
     year: Optional[int] = None
     quarter: Optional[Literal["Q1", "Q2", "Q3", "Q4"]] = None
-    profile_image: Optional[str] = None
+    assignee_username: Optional[str] = Field(default=None, example="jane_doe")
 
 class GoalResponse(GoalBase):
     id: str

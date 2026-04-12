@@ -8,7 +8,7 @@ def update_helper(update_doc) -> dict:
         "id": str(update_doc["_id"]),
         "name": update_doc.get("name"),
         "role": update_doc.get("role"),
-        "empid": update_doc.get("empid"),
+        "username": update_doc.get("username"),
         "week_start_date": update_doc.get("week_start_date"),
         "project_info": update_doc.get("project_info"),
         "created_at": update_doc.get("created_at")

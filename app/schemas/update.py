@@ -4,11 +4,11 @@ from datetime import date, datetime
 
 class WeeklyUpdateBase(BaseModel):
     name: str = Field(..., example="Jane Doe")
-    empid: str = Field(..., example="EMP-1042")
     role: str = Field(..., example="Frontend Engineer")
     project_info: dict = Field(..., example={"project_name": "Project Alpha","client":"Client Beta", "task_description": "Worked on UI components"})
     # We use week_start_date (e.g., the Monday of that week) to easily group everyone's updates together
     week_start_date: date = Field(..., example="2026-04-06")
+    username: str = Field(..., example="jane_doe")
 
 class WeeklyUpdateCreate(WeeklyUpdateBase):
     pass

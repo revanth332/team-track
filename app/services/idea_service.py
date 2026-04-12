@@ -16,6 +16,8 @@ def idea_helper(idea_doc) -> dict:
         "status": idea_doc.get("status"),
         "blog_assignee": idea_doc.get("blog_assignee"),
         "video_assignee": idea_doc.get("video_assignee"),
+        "blog_assignee_username":idea_doc.get("blog_assignee_username"),
+        "video_assignee_username": idea_doc.get("video_assignee_username"),
         "added_by": idea_doc.get("added_by"),
         "created_at": idea_doc.get("created_at")
     }
@@ -60,10 +62,12 @@ async def update_idea(idea_id: str, idea_data: IdeaUpdate):
         if idea_data.blog_assignee:
             type = "blog"
             assignee = idea_data.blog_assignee
+            assignee_username = idea_data.blog_assignee_username
         elif idea_data.video_assignee:
             type = "video"
             assignee = idea_data.video_assignee
-        
+            assignee_username = idea_data.video_assignee_username
+
         if not existing_goal:
             # Convert simple idea links to the Goal link dictionary format
             idea_links = updated_idea.get("links", [])
@@ -76,6 +80,7 @@ async def update_idea(idea_id: str, idea_data: IdeaUpdate):
             # Create the auto-generated Goal payload
             new_goal = GoalCreate(
                 assignee=assignee,
+                assignee_username=assignee,
                 title=updated_idea.get("title"),
                 description=updated_idea.get("description"),
                 links=formatted_links,
