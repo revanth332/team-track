@@ -2,7 +2,7 @@ from bson import ObjectId
 from datetime import datetime, timezone
 from app.core.database import get_database
 from app.schemas.idea import IdeaCreate, IdeaUpdate
-from app.schemas.goal import GoalCreate, TimelineValue
+from app.schemas.goal import GoalCreate
 from app.services.goal_service import create_goal
 
 
@@ -82,7 +82,6 @@ async def update_idea(idea_id: str, idea_data: IdeaUpdate):
                 type=type, # Defaulting to blog, user can update later
                 status="Pending",
                 progress=0,
-                timeline_value=TimelineValue(), # Empty timeline
                 idea_id=idea_id, # Linking them together!
                 year=datetime.now().year,
                 quarter=current_quarter

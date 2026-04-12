@@ -3,6 +3,33 @@ from datetime import datetime, timezone
 from app.core.database import get_database
 from app.schemas.goal import GoalCreate, GoalUpdate
 
+status_progress_mapping = {
+    "blog":{
+        "progress":{
+            "Pending": 0,
+            "Make Document":1,
+            "Document Review": 2,
+            "Make Final Draft":3,
+            "Completed": 4,
+        },
+        "total":10
+    },
+    "video":{
+        "progress":{
+            "Pending": 0,
+            "Make PPT": 1,
+            "PPT Review": 2,
+            "Format PPT(Sales)": 3,
+            "Record Video": 4,
+            "Video Review": 5,
+            "Format Video(Sales)": 6,
+            "Completed": 7
+        },
+        "total":28 
+    }
+}
+
+
 def goal_helper(goal_doc) -> dict:
     return {
         "id": str(goal_doc["_id"]),
@@ -43,24 +70,11 @@ async def update_goal(goal_id: str, goal_data: GoalUpdate):
         return None
         
     update_dict = goal_data.model_dump(exclude_unset=True)
-    
-    # Calculate progress percentage based on timeline_value if provided
-    if "timeline_value" in update_dict and update_dict["timeline_value"] and update_dict["type"]:
-        tv = update_dict["timeline_value"]
-        # Sum of current values / Sum of max possible values (3 for blog, 6 for video, 2 for poc)
-        current_sum = 0
-        max_sum = 3
-
-        print(update_dict,"kjhgkjhgkjhgkjh",tv)
-        if update_dict["type"] == "blog":
-            current_sum = tv["blog"]
-            max_sum = 3
-        elif update_dict["type"] == "video":
-            current_sum = tv["video"] + tv["poc"]
-            max_sum = 8
-        
-        # Calculate percentage and round to 2 decimal places
-        progress = int((current_sum / max_sum) * 100)
+    if "status" in update_dict:
+        status_value = status_progress_mapping[goal_data.type]["progress"].get(goal_data.status, 0)
+        total_value = status_progress_mapping[goal_data.type]["total"]
+        current_sum = (status_value * (status_value+1))//2
+        progress = int((current_sum / total_value) * 100)
         update_dict["progress"] = progress
 
     if update_dict:

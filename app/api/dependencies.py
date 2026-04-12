@@ -12,8 +12,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     Decodes the JWT token and returns the current user's data (username and role).
     """
 
-    return {"username": "rlanka1", "role": "user"}
-
     token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

@@ -32,6 +32,13 @@ async def modify_idea(
     """
     Update an idea's title, description, or links.
     """
+    existing_idea = await idea_service.get_idea_by_id(idea_id)
+    if idea.status and idea.status not in ["Pending", "Approved", "Rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid status value")
+    if idea.blog_assignee and existing_idea.status != "Approved":
+        raise HTTPException(status_code=400, detail="Idea must be approved before assigning")
+    if idea.video_assignee and existing_idea.status != "Approved":
+        raise HTTPException(status_code=400, detail="Idea must be approved before assigning")
     updated_idea = await idea_service.update_idea(idea_id,idea)
     if not updated_idea:
         raise HTTPException(status_code=404, detail="Idea not found")
