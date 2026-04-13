@@ -12,41 +12,37 @@ token_manager = TokenManager()
 async def login(credentials: LoginRequest):
     username = credentials.username
     passkey = credentials.passkey
+    is_admin = False
     
-    # 1. Admin Login Logic
-    if username.lower() == "admin":
-        if passkey != settings.ADMIN_PASSKEY:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect admin passkey"
-            )
-        role = "admin"
-        
-    # 2. Regular User Login Logic
+    # Check passkey against User and Admin secrets
+    if passkey == settings.USER_PASSKEY:
+        is_admin = False
+    elif passkey == settings.ADMIN_PASSKEY:
+        is_admin = True
     else:
-        if passkey != settings.USER_PASSKEY:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect user passkey"
-            )
-            
-        # Check if user exists in the DB (assuming 'username' is their email)
-        user = await user_service.get_user_by_username(username)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found in the system"
-            )
-            
-        # Extract their role from the DB profile (fallback to 'member' if missing)
-        role = user.get("role", "member")
-        name = user.get("name", "Unknown User")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials"
+        )
+
+    # Check if user exists in the DB
+    user = await user_service.get_user_by_username(username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found in the system"
+        )
+        
+    # Extract their role from the DB profile (fallback to 'member' if missing)
+    role = user.get("role", "member")
+    name = user.get("name", "Unknown User")
         
     # 3. Create the JWT Token payload
     token_payload = {
-        "sub": username, # 'sub' is the standard JWT field for the user identity
+        "sub": username,
         "role": role,
-        "name":name
+        "name":name,
+        "admin": is_admin
     }
     
     # Generate and return the token
