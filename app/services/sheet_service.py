@@ -39,20 +39,60 @@ field_mapping = {
 }
 
 
+# async def add_row_zoho_sheet(request: CreateSheetRequest):
+#     """
+#     Endpoint to update a Zoho Sheet.
+#     By default, it uses 'worksheet.records.add' to append new rows mapped to headers.
+#     """
+#     # 1. Ensure we have a valid access token
+#     try:
+#         access_token = token_manager.get_zoho_token()
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+        
+#     # 2. Construct the Zoho Sheet API URL
+#     url = f"https://sheet.zoho.{ZOHO_DOMAIN}/api/v2/{SHEET_RESOURCE_ID}"
+    
+#     headers = {
+#         "Authorization": f"Zoho-oauthtoken {access_token}"
+#     }
+
+#     shift_record = {}
+#     for key, value in request.record.model_dump().items():
+#         zoho_field = field_mapping.get(key)
+#         if zoho_field:
+#             shift_record[zoho_field] = value
+    
+#     # 3. Zoho Sheet v2 API expects URL-encoded form data, stringifying the JSON
+#     payload = {
+#         "method": "worksheet.records.add",
+#         "worksheet_name": SHEET_NAME,
+#         "header_row": "1",
+#         "json_data": json.dumps([shift_record]) # Zoho expects an array of records
+#     }
+
+    
+#     # 4. Make the request to Zoho
+#     response = requests.post(url, headers=headers, data=payload,verify=False)
+    
+#     # 5. Handle and return the response
+#     if response.status_code == 200:
+#         return {"status": "success", "info": response.json()}
+#     else:
+#         raise HTTPException(
+#             status_code=response.status_code, 
+#             detail=f"Zoho API Error: {response.text}"
+#         )
+    
 async def add_row_zoho_sheet(request: CreateSheetRequest):
-    """
-    Endpoint to update a Zoho Sheet.
-    By default, it uses 'worksheet.records.add' to append new rows mapped to headers.
-    """
-    # 1. Ensure we have a valid access token
+
     try:
         access_token = token_manager.get_zoho_token()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-        
-    # 2. Construct the Zoho Sheet API URL
+
     url = f"https://sheet.zoho.{ZOHO_DOMAIN}/api/v2/{SHEET_RESOURCE_ID}"
-    
+
     headers = {
         "Authorization": f"Zoho-oauthtoken {access_token}"
     }
@@ -62,28 +102,88 @@ async def add_row_zoho_sheet(request: CreateSheetRequest):
         zoho_field = field_mapping.get(key)
         if zoho_field:
             shift_record[zoho_field] = value
-    
-    # 3. Zoho Sheet v2 API expects URL-encoded form data, stringifying the JSON
+
+    emp_id = shift_record.get("Emp ID")
+    date = shift_record.get("Date")
+
+    # ------------------------------------
+    # DUPLICATE CHECK
+    # ------------------------------------
+    fetch_payload = {
+        "method": "worksheet.records.fetch",
+        "worksheet_name": SHEET_NAME,
+        "header_row": "1",
+        "criteria": f'("Date" = "{date}")'
+    }
+
+    fetch_response = requests.get(
+        url,
+        headers=headers,
+        params=fetch_payload,
+        verify=False
+    )
+    if fetch_response.status_code != 200:
+        raise HTTPException(status_code=500, detail=fetch_response.text)
+
+    fetch_data = fetch_response.json()
+    print(fetch_data, "Fetched data for duplicate check")
+    if fetch_data.get("records"):
+        for row in fetch_data["records"]:
+            if row.get("Emp ID") == emp_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Duplicate record exists for Emp ID {emp_id} on {date}"
+                )
+
+    # ------------------------------------
+    # GET EXISTING RECORDS TO FIND MAX ID
+    # ------------------------------------
+    id_fetch_payload = {
+        "method": "worksheet.records.fetch",
+        "worksheet_name": SHEET_NAME
+    }
+
+    id_response = requests.get(url, headers=headers, params=id_fetch_payload, verify=False)
+
+    if id_response.status_code != 200:
+        raise HTTPException(status_code=500, detail=id_response.text)
+
+    rows = id_response.json().get("records", [])
+
+    # ------------------------------------
+    # COMPUTE NEXT ID
+    # ------------------------------------
+    max_id = 0
+
+    for row in rows:
+        try:
+            row_id = int(row.get("#", 0))
+            if row_id > max_id:
+                max_id = row_id
+        except:
+            pass
+
+    next_id = max_id + 1
+
+    shift_record["#"] = next_id
+
+    # ------------------------------------
+    # INSERT RECORD
+    # ------------------------------------
     payload = {
         "method": "worksheet.records.add",
         "worksheet_name": SHEET_NAME,
         "header_row": "1",
-        "json_data": json.dumps([shift_record]) # Zoho expects an array of records
+        "json_data": json.dumps([shift_record])
     }
 
-    
-    # 4. Make the request to Zoho
-    response = requests.post(url, headers=headers, data=payload,verify=False)
-    
-    # 5. Handle and return the response
+    response = requests.post(url, headers=headers, data=payload, verify=False)
+
     if response.status_code == 200:
         return {"status": "success", "info": response.json()}
-    else:
-        raise HTTPException(
-            status_code=response.status_code, 
-            detail=f"Zoho API Error: {response.text}"
-        )
-    
+
+    raise HTTPException(status_code=response.status_code, detail=response.text)
+
 async def get_zoho_sheet_data(request: GetSheetRequest):
     """
     Endpoint to fetch records from a Zoho Sheet.
@@ -117,12 +217,12 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
     
     # 4. Make the request
     response = requests.get(url, headers=headers, params=payload,verify=False)
-    print(response.json(),"# Debugging output to verify Zoho response")
     
     if response.status_code == 200:
         data = response.json()
         records = data.get("records", [])
-        shifts = [shift_helper(record) for record in records]
+        valid_records = [r for r in records if r.get("Emp ID") and r.get("Date")]
+        shifts = [shift_helper(record) for record in valid_records]
 
         if request.year or request.month:
             filtered_records =[]
