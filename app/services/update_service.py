@@ -1,3 +1,5 @@
+from http.client import HTTPException
+
 from bson import ObjectId
 from datetime import datetime, timezone
 from app.core.database import get_database
@@ -17,6 +19,12 @@ def update_helper(update_doc) -> dict:
 async def create_weekly_update(data: WeeklyUpdateCreate):
     db = get_database()
     update_dict = data.model_dump()
+    existing_update = await db.weekly_updates.find_one({
+        "username": update_dict["username"],
+        "week_start_date": update_dict["week_start_date"]
+    })
+    if existing_update:
+        raise HTTPException(status_code=400, detail="Idea already exists")
 
     # 1. Convert Date to Datetime for MongoDB
     update_dict["week_start_date"] = datetime.combine(update_dict["week_start_date"], datetime.min.time())
