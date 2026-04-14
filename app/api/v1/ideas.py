@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Body
+from fastapi import APIRouter, HTTPException, Query, status, Depends, Body
 from typing import List
 from app.schemas.idea import IdeaCreate, IdeaUpdate, IdeaResponse
 from app.services import idea_service
@@ -17,11 +17,11 @@ async def add_new_idea(
     return await idea_service.create_idea(idea)
 
 @router.get("/", response_model=List[IdeaResponse], dependencies=[Depends(get_current_user)])
-async def list_all_ideas():
+async def list_all_ideas(username:str = Query(None, description="Filter ideas by submitter's username"),title: str = Query(None, description="Filter ideas by title keyword")):
     """
     Fetch all ideas.
     """
-    return await idea_service.get_all_ideas()
+    return await idea_service.get_all_ideas(username,title)
 
 @router.put("/{idea_id}", response_model=IdeaResponse)
 async def modify_idea(

@@ -56,10 +56,17 @@ async def create_goal(goal_data: GoalCreate):
     new_goal = await db.goals.find_one({"_id": result.inserted_id})
     return goal_helper(new_goal)
 
-async def get_all_goals():
+async def get_all_goals(username:str = None,year: int = None,quarter:str = None):
     db = get_database()
     goals =[]
-    async for goal in db.goals.find().sort("created_at", -1):
+    query = {}
+    if username:
+        query["assignee_username"] = username
+    if year:
+        query["year"] = year
+    if quarter:
+        query["quarter"] = quarter
+    async for goal in db.goals.find(query).sort("created_at", -1):
         goals.append(goal_helper(goal))
     return goals
 

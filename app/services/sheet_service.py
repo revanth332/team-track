@@ -201,6 +201,14 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
     headers = {
         "Authorization": f"Zoho-oauthtoken {access_token}"
     }
+
+    criteria_str = ""
+    if request.date:
+        criteria_str += f'("Date" = "{request.date}")'
+    if request.name:
+        if criteria_str:
+            criteria_str += " and "
+        criteria_str += f'("Employee Name" = "{request.name}")'
     
     # 3. Method for fetching is "worksheet.records.fetch"
     payload = {
@@ -208,12 +216,9 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
         "worksheet_name": SHEET_NAME,
         "header_row": str(request.header_row),
         "page": str(request.page),
-        "criteria": f'("Date" = "{request.date}")' if request.date else None,
+        "criteria": criteria_str,
         "per_page": str(request.per_page)
     }
-
-    if request.name:
-        payload["criteria"] = f'"Name" == "{request.name}"'
     
     # 4. Make the request
     response = requests.get(url, headers=headers, params=payload,verify=False)
