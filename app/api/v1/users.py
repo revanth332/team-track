@@ -11,11 +11,11 @@ async def create_new_user(user: UserCreate = Body(...)):
     Create a new team member profile.
     """
     # Check if user already exists by email
-    existing_user = await user_service.get_user_by_email(user.email)
+    existing_user = await user_service.get_user_by_username(user.username)
     if existing_user:
         raise HTTPException(
             status_code=400, 
-            detail="A user with this email already exists."
+            detail="A user with this username already exists."
         )
     
     return await user_service.create_user(user)

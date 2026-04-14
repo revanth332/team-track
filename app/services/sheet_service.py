@@ -105,6 +105,9 @@ async def add_row_zoho_sheet(request: CreateSheetRequest):
 
     emp_id = shift_record.get("Emp ID")
     date = shift_record.get("Date")
+    raw_date = datetime.strptime(date, "%d/%m/%Y")
+    valid_date = datetime.strftime(raw_date, "%Y-%m-%d")
+    print(valid_date,"# Debugging output to verify date formatting")
 
     # ------------------------------------
     # DUPLICATE CHECK
@@ -113,7 +116,7 @@ async def add_row_zoho_sheet(request: CreateSheetRequest):
         "method": "worksheet.records.fetch",
         "worksheet_name": SHEET_NAME,
         "header_row": "1",
-        "criteria": f'("Date" = "{date}")'
+        "criteria": f'("Date" = "{valid_date}")'
     }
 
     fetch_response = requests.get(
@@ -126,10 +129,9 @@ async def add_row_zoho_sheet(request: CreateSheetRequest):
         raise HTTPException(status_code=500, detail=fetch_response.text)
 
     fetch_data = fetch_response.json()
-    print(fetch_data, "Fetched data for duplicate check")
     if fetch_data.get("records"):
         for row in fetch_data["records"]:
-            if row.get("Emp ID") == emp_id:
+            if str(row.get("Emp ID")) == str(emp_id):
                 raise HTTPException(
                     status_code=400,
                     detail=f"Duplicate record exists for Emp ID {emp_id} on {date}"
