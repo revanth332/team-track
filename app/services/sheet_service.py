@@ -26,8 +26,8 @@ field_mapping = {
     "name": "Employee Name",
     "empid": "Emp ID",
     "date": "Date",
-    "actual_shift": "Hubble Timings",
-    "worked_shift": "Shift Timings",
+    "actual_shift": "Hubble Shift Timings",
+    "worked_shift": "Worked Shift Timings",
     "project": "Project Name",
     "reason": "Reason",
     "lead_approval": "Sandeep Lead Approval",
@@ -107,7 +107,6 @@ async def add_row_zoho_sheet(request: CreateSheetRequest):
     date = shift_record.get("Date")
     raw_date = datetime.strptime(date, "%d/%m/%Y")
     valid_date = datetime.strftime(raw_date, "%Y-%m-%d")
-    print(valid_date,"# Debugging output to verify date formatting")
 
     # ------------------------------------
     # DUPLICATE CHECK
@@ -308,3 +307,49 @@ async def update_row_zoho_sheet(request: UpdateSheetRequest, emp_id: str, date: 
     response = requests.post(url, headers=headers, data=payload)
     
     return response.json()
+
+async def delete_row_zoho_sheet(name: str, date: str,is_admin: bool):
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Only admins can delete records")
+
+    access_token = token_manager.get_zoho_token()
+
+    url = f"https://sheet.zoho.{ZOHO_DOMAIN}/api/v2/{SHEET_RESOURCE_ID}"
+
+    headers = {
+        "Authorization": f"Zoho-oauthtoken {access_token}"
+    }
+
+    criteria_str = f'("Employee Name" = "{name}" and "Date" = "{date}")'
+
+    # Step 1 — Fetch matching records
+    fetch_payload = {
+        "method": "worksheet.records.fetch",
+        "worksheet_name": SHEET_NAME,
+        "criteria": criteria_str
+    }
+
+    fetch_response = requests.get(url, headers=headers, params=fetch_payload,verify=False)
+    if fetch_response.status_code != 200:
+        raise HTTPException(status_code=500, detail=fetch_response.text)
+    fetch_data = fetch_response.json()
+
+    records = fetch_data.get("records", [])
+
+    if not records:
+        raise Exception("No record found to delete")
+
+    if len(records) > 1:
+        raise Exception("Multiple records found. Delete aborted for safety")
+
+
+    # Step 2 — Delete using row_id
+    delete_payload = {
+        "method": "worksheet.records.delete",
+        "worksheet_name": SHEET_NAME,
+        "criteria": criteria_str
+    }
+
+    delete_response = requests.post(url, headers=headers, data=delete_payload,verify=False)
+
+    return delete_response.json()
