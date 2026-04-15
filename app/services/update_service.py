@@ -16,22 +16,53 @@ def update_helper(update_doc) -> dict:
         "created_at": update_doc.get("created_at")
     }
 
+# async def create_weekly_update(data: WeeklyUpdateCreate):
+#     db = get_database()
+#     update_dict = data.model_dump()
+#     existing_update = await db.weekly_updates.find_one({
+#         "username": update_dict["username"],
+#         "week_start_date": update_dict["week_start_date"]
+#     })
+#     if existing_update:
+#         raise HTTPException(status_code=400, detail="Idea already exists")
+
+#     # 1. Convert Date to Datetime for MongoDB
+#     update_dict["week_start_date"] = datetime.combine(update_dict["week_start_date"], datetime.min.time())
+    
+#     # 2. Auto-generate created_at timestamp
+#     update_dict["created_at"] = datetime.now(timezone.utc)
+
+#     result = await db.weekly_updates.insert_one(update_dict)
+#     new_update = await db.weekly_updates.find_one({"_id": result.inserted_id})
+#     return update_helper(new_update)
+
 async def create_weekly_update(data: WeeklyUpdateCreate):
     db = get_database()
     update_dict = data.model_dump()
+    
+    # 1. Convert Date to Datetime for MongoDB FIRST!
+    if update_dict.get("week_start_date"):
+        update_dict["week_start_date"] = datetime.combine(
+            update_dict["week_start_date"], 
+            datetime.min.time()
+        )
+
+    # 2. NOW you can safely query the database
     existing_update = await db.weekly_updates.find_one({
         "username": update_dict["username"],
         "week_start_date": update_dict["week_start_date"]
     })
-    if existing_update:
-        raise HTTPException(status_code=400, detail="Idea already exists")
-
-    # 1. Convert Date to Datetime for MongoDB
-    update_dict["week_start_date"] = datetime.combine(update_dict["week_start_date"], datetime.min.time())
     
-    # 2. Auto-generate created_at timestamp
+    if existing_update:
+        raise HTTPException(
+            status_code=400, 
+            detail="Weekly update already exists for this week"
+        )
+    
+    # 3. Auto-generate created_at timestamp
     update_dict["created_at"] = datetime.now(timezone.utc)
 
+    # 4. Insert and return
     result = await db.weekly_updates.insert_one(update_dict)
     new_update = await db.weekly_updates.find_one({"_id": result.inserted_id})
     return update_helper(new_update)
