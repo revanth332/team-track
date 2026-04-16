@@ -1,13 +1,24 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional,List
 from datetime import date, datetime
+
+class ProjectInfo(BaseModel):
+    project_name: str
+    client: str
+    task_description: str
 
 class WeeklyUpdateBase(BaseModel):
     name: str = Field(..., example="Jane Doe")
     role: str = Field(..., example="Frontend Engineer")
-    project_info: dict = Field(..., example={"project_name": "Project Alpha","client":"Client Beta", "task_description": "Worked on UI components"})
-    # We use week_start_date (e.g., the Monday of that week) to easily group everyone's updates together
-    week_start_date: date = Field(..., example="2026-04-06")
+    projects: List[ProjectInfo] = Field(..., example=[
+        {
+            "project_name": "Project Alpha",
+            "client": "Client Beta",
+            "task_description": "Worked on UI components"
+        }
+    ])
+    # We use week_end_date (e.g., the Monday of that week) to easily group everyone's updates together
+    week_end_date: date = Field(..., example="2026-04-06")
     username: str = Field(..., example="jane_doe")
 
 class WeeklyUpdateCreate(WeeklyUpdateBase):
@@ -16,8 +27,8 @@ class WeeklyUpdateCreate(WeeklyUpdateBase):
 class WeeklyUpdateModify(BaseModel):
     name: Optional[str] = None
     empid: Optional[str] = None
-    week_start_date: Optional[date] = None
-    project_info: Optional[dict] = None
+    week_end_date: Optional[date] = None
+    projects: Optional[List[ProjectInfo]] = None
 
 
 class WeeklyUpdateResponse(WeeklyUpdateBase):

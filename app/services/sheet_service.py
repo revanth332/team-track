@@ -24,7 +24,6 @@ SHEET_NAME = os.getenv("SHEET_NAME")
 
 field_mapping = {
     "name": "Employee Name",
-    "empid": "Emp ID",
     "date": "Date",
     "actual_shift": "Hubble Shift Timings",
     "worked_shift": "Worked Shift Timings",
@@ -37,53 +36,7 @@ field_mapping = {
     "manager_remarks": "Manager Comments if any",
     "hr_lead_comments": "Lead/HR comments"
 }
-
-
-# async def add_row_zoho_sheet(request: CreateSheetRequest):
-#     """
-#     Endpoint to update a Zoho Sheet.
-#     By default, it uses 'worksheet.records.add' to append new rows mapped to headers.
-#     """
-#     # 1. Ensure we have a valid access token
-#     try:
-#         access_token = token_manager.get_zoho_token()
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-        
-#     # 2. Construct the Zoho Sheet API URL
-#     url = f"https://sheet.zoho.{ZOHO_DOMAIN}/api/v2/{SHEET_RESOURCE_ID}"
-    
-#     headers = {
-#         "Authorization": f"Zoho-oauthtoken {access_token}"
-#     }
-
-#     shift_record = {}
-#     for key, value in request.record.model_dump().items():
-#         zoho_field = field_mapping.get(key)
-#         if zoho_field:
-#             shift_record[zoho_field] = value
-    
-#     # 3. Zoho Sheet v2 API expects URL-encoded form data, stringifying the JSON
-#     payload = {
-#         "method": "worksheet.records.add",
-#         "worksheet_name": SHEET_NAME,
-#         "header_row": "1",
-#         "json_data": json.dumps([shift_record]) # Zoho expects an array of records
-#     }
-
-    
-#     # 4. Make the request to Zoho
-#     response = requests.post(url, headers=headers, data=payload,verify=False)
-    
-#     # 5. Handle and return the response
-#     if response.status_code == 200:
-#         return {"status": "success", "info": response.json()}
-#     else:
-#         raise HTTPException(
-#             status_code=response.status_code, 
-#             detail=f"Zoho API Error: {response.text}"
-#         )
-    
+ 
 async def add_row_zoho_sheet(request: CreateSheetRequest):
 
     try:
@@ -103,10 +56,10 @@ async def add_row_zoho_sheet(request: CreateSheetRequest):
         if zoho_field:
             shift_record[zoho_field] = value
 
-    emp_id = shift_record.get("Emp ID")
+    name = shift_record.get("Employee Name")
     date = shift_record.get("Date")
-    raw_date = datetime.strptime(date, "%d/%m/%Y")
-    valid_date = datetime.strftime(raw_date, "%Y-%m-%d")
+    # raw_date = datetime.strptime(date, "%d/%m/%Y")
+    # valid_date = datetime.strftime(raw_date, "%Y-%m-%d")
 
     # ------------------------------------
     # DUPLICATE CHECK
@@ -115,7 +68,7 @@ async def add_row_zoho_sheet(request: CreateSheetRequest):
         "method": "worksheet.records.fetch",
         "worksheet_name": SHEET_NAME,
         "header_row": "1",
-        "criteria": f'("Date" = "{valid_date}")'
+        "criteria": f'"Date"="{date}" and "Employee Name"="{name}"'
     }
 
     fetch_response = requests.get(
@@ -127,14 +80,11 @@ async def add_row_zoho_sheet(request: CreateSheetRequest):
     if fetch_response.status_code != 200:
         raise HTTPException(status_code=500, detail=fetch_response.text)
 
-    fetch_data = fetch_response.json()
-    if fetch_data.get("records"):
-        for row in fetch_data["records"]:
-            if str(row.get("Emp ID")) == str(emp_id):
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Duplicate record exists for Emp ID {emp_id} on {date}"
-                )
+    if fetch_response.json().get("records"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Duplicate record exists for Employee Name {name} on {date}"
+        )
 
     # ------------------------------------
     # GET EXISTING RECORDS TO FIND MAX ID
@@ -154,17 +104,15 @@ async def add_row_zoho_sheet(request: CreateSheetRequest):
     # ------------------------------------
     # COMPUTE NEXT ID
     # ------------------------------------
-    max_id = 0
+    last_row_id = 0
 
     for row in rows:
         try:
-            row_id = int(row.get("#", 0))
-            if row_id > max_id:
-                max_id = row_id
+            last_row_id = int(row.get("#", 0))
         except:
             pass
 
-    next_id = max_id + 1
+    next_id = last_row_id + 1
 
     shift_record["#"] = next_id
 
@@ -227,7 +175,7 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
     if response.status_code == 200:
         data = response.json()
         records = data.get("records", [])
-        valid_records = [r for r in records if r.get("Emp ID") and r.get("Date")]
+        valid_records = [r for r in records if r.get("Employee Name") and r.get("Date")]
         shifts = [shift_helper(record) for record in valid_records]
 
         if request.year or request.month:
@@ -278,7 +226,7 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
             detail=f"Zoho API Error: {response.text}"
         )
     
-async def update_row_zoho_sheet(request: UpdateSheetRequest, emp_id: str, date: str):
+async def update_row_zoho_sheet(request: UpdateSheetRequest, name: str, date: str):
     """
     Updates a specific row index (e.g., row 5) with new_data.
     """
@@ -293,22 +241,26 @@ async def update_row_zoho_sheet(request: UpdateSheetRequest, emp_id: str, date: 
         if zoho_field:
             shift_record[zoho_field] = value
     
-    criteria_str = f'("Emp ID" = "{emp_id}" and "Date" = "{date}")'
+    criteria_str = f'"Date"="{date}" and "Employee Name"="{name}"'
 
     payload = {
         "method": "worksheet.records.update",
         "worksheet_name": SHEET_NAME,
         "header_row":str(request.header_row),
         "criteria": criteria_str,
+        "first_match_only": True,
         "data": json.dumps(shift_record)
     }
 
-    print(payload,"# Debugging output to verify update payload") # Debugging output to verify update payload
-    response = requests.post(url, headers=headers, data=payload)
+    response = requests.post(url, headers=headers, data=payload,verify=False)
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail=response.text)
     
     return response.json()
 
 async def delete_row_zoho_sheet(name: str, date: str,is_admin: bool):
+    print(f"Delete request received for Name: {name}, Date: {date}, Is Admin: {is_admin}") # Debugging output to verify delete parameters
     if not is_admin:
         raise HTTPException(status_code=403, detail="Only admins can delete records")
 
@@ -317,39 +269,22 @@ async def delete_row_zoho_sheet(name: str, date: str,is_admin: bool):
     url = f"https://sheet.zoho.{ZOHO_DOMAIN}/api/v2/{SHEET_RESOURCE_ID}"
 
     headers = {
+        'Content-type':'application/x-www-form-urlencoded',
         "Authorization": f"Zoho-oauthtoken {access_token}"
     }
 
-    criteria_str = f'("Employee Name" = "{name}" and "Date" = "{date}")'
+    criteria_str = f'"Date" = "{date}" and "Employee Name" = "{name}"'
 
-    # Step 1 — Fetch matching records
-    fetch_payload = {
-        "method": "worksheet.records.fetch",
-        "worksheet_name": SHEET_NAME,
-        "criteria": criteria_str
-    }
-
-    fetch_response = requests.get(url, headers=headers, params=fetch_payload,verify=False)
-    if fetch_response.status_code != 200:
-        raise HTTPException(status_code=500, detail=fetch_response.text)
-    fetch_data = fetch_response.json()
-
-    records = fetch_data.get("records", [])
-
-    if not records:
-        raise Exception("No record found to delete")
-
-    if len(records) > 1:
-        raise Exception("Multiple records found. Delete aborted for safety")
-
-
-    # Step 2 — Delete using row_id
     delete_payload = {
         "method": "worksheet.records.delete",
         "worksheet_name": SHEET_NAME,
-        "criteria": criteria_str
+        "criteria": criteria_str,
+        "delete_rows": True,
+        "first_match_only": True
     }
 
     delete_response = requests.post(url, headers=headers, data=delete_payload,verify=False)
+    if delete_response.status_code != 200:
+        raise HTTPException(status_code=500, detail=delete_response.text)
 
     return delete_response.json()

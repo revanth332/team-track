@@ -4,7 +4,6 @@ def shift_helper(shift) -> dict:
     return {
         "id": str(shift["#"]),
         "name": shift.get("Employee Name"),
-        "empid": shift.get("Emp ID"),
         "date": shift.get("Date"),
         "actual_shift":shift.get("Hubble Shift Timings"),
         "worked_shift": shift.get("Worked Shift Timings"),

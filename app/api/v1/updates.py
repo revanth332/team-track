@@ -15,13 +15,13 @@ async def submit_weekly_update(update_data: WeeklyUpdateCreate = Body(...)):
 
 @router.get("/", response_model=List[WeeklyUpdateResponse])
 async def list_weekly_updates(
-    week_start_date: Optional[date] = Query(None, description="Filter by the Monday of the week (YYYY-MM-DD)"),
+    week_end_date: Optional[date] = Query(None, description="Filter by the Monday of the week (YYYY-MM-DD)"),
     name: Optional[str] = Query(None, description="Filter updates by team member's name")
 ):
     """
     Fetch all updates, optionally filtered by a specific week.
     """
-    return await update_service.get_weekly_updates(week_start_date,name)
+    return await update_service.get_weekly_updates(week_end_date,name)
 
 @router.put("/{update_id}", response_model=WeeklyUpdateResponse)
 async def edit_weekly_update(update_id: str, update_data: WeeklyUpdateModify = Body(...)):
@@ -32,3 +32,13 @@ async def edit_weekly_update(update_id: str, update_data: WeeklyUpdateModify = B
     if not updated_doc:
         raise HTTPException(status_code=404, detail="Update not found")
     return updated_doc
+
+@router.delete("/{update_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_weekly_update(update_id: str):
+    """
+    Delete a weekly update (e.g., if it was submitted in error).
+    """
+    success = await update_service.delete_weekly_update(update_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Update not found")
+    return None

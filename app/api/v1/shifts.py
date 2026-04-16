@@ -25,13 +25,13 @@ async def log_shift_change(shift: CreateSheetRequest = Body(...)):
 @router.put("/", response_model=ShiftResponse, dependencies=[Depends(get_current_user)])
 async def update_shift_change(
     shift: UpdateSheetRequest = Body(...),
-    emp_id: str = Query(..., description="Employee ID for verification"),
+    name: str = Query(..., description="Employee Name for verification"),
     date: str = Query(..., description="Date string for verification")
 ):
     """
     Update an existing shift change.
     """
-    return await sheet_service.update_row_zoho_sheet(shift, emp_id,date)
+    return await sheet_service.update_row_zoho_sheet(shift, name, date)
 
 @router.delete("/")
 async def delete_shift_change(

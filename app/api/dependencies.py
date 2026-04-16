@@ -23,7 +23,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         # Decode the token using your SECRET_KEY
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
-        is_admin: str = payload.get("role")
+        is_admin: str = payload.get("admin", False)
         
         if username is None:
             raise credentials_exception
