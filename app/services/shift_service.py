@@ -9,11 +9,10 @@ def shift_helper(shift) -> dict:
         "worked_shift": shift.get("Worked Shift Timings"),
         "project": shift.get("Project Name"),
         "reason": shift.get("Reason"),
-        "lead_approval": shift.get("Sandeep Lead Approval"),
-        "lead_remarks": shift.get("Lead Remarks"),
-        "hr_verication": shift.get("HR Verified Yes/No"),
+        "lead_approval": shift.get("Sandeep\nLead Approval\nYes/No"),
+        "hr_verication": shift.get("HR Verified\nBiometric\nYes/No"),
         "manager_approval": shift.get("Vamsi Nadenlda Approval"),
         "manager_remarks": shift.get("Manager Comments if any"),
-        "hr_lead_comments": shift.get("Lead/HR comments"),
+        "hr_lead_comments": shift.get("Lead/HR\ncomments"),
         "row_index": shift.get("row_index")
     }

@@ -29,11 +29,11 @@ field_mapping = {
     "worked_shift": "Worked Shift Timings",
     "project": "Project Name",
     "reason": "Reason",
-    "lead_approval": "Sandeep Lead Approval Yes/No",
-    "hr_verification": "HR Verified Biometric Yes/No",
+    "lead_approval": "Sandeep\nLead Approval\nYes/No",
+    "hr_verification": "HR Verified\nBiometric\nYes/No",
     "manager_approval": "Vamsi Approval",
     "manager_remarks": "Manager Comments if any",
-    "hr_lead_comments": "Lead/HR comments"
+    "hr_lead_comments": "Lead/HR\ncomments"
 }
  
 async def add_row_zoho_sheet(request: CreateSheetRequest):
@@ -184,7 +184,6 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
                 # Get the date string from the row. 
                 # (Make sure "Date" matches your exact column header case)
                 date_str = row.get("date") 
-                print(date_str,"Before") 
                 if not date_str:
                     continue # Skip rows with empty dates
                     
