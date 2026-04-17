@@ -29,10 +29,9 @@ field_mapping = {
     "worked_shift": "Worked Shift Timings",
     "project": "Project Name",
     "reason": "Reason",
-    "lead_approval": "Sandeep Lead Approval",
-    "lead_remarks": "Lead Remarks",
-    "hr_verification": "HR Verified Yes/No",
-    "manager_approval": "Vamsi Nadenlda Approval",
+    "lead_approval": "Sandeep Lead Approval Yes/No",
+    "hr_verification": "HR Verified Biometric Yes/No",
+    "manager_approval": "Vamsi Approval",
     "manager_remarks": "Manager Comments if any",
     "hr_lead_comments": "Lead/HR comments"
 }

@@ -4,14 +4,12 @@ from datetime import date, time, datetime
 
 class ShiftBase(BaseModel):
     name: Optional[str] = Field(default=None, example="Jane Doe")
-    empid: Optional[str] = Field(default=None, example="EMP-1042")
     date: Optional[str] = Field(default=None, example="2026-04-15")
     actual_shift: Optional[str] = Field(default=None, example="09:00:00 - 17:00:00")
     worked_shift: Optional[str] = Field(default=None, example="11:00:00 - 19:00:00")
     project: Optional[str] = Field(default=None, example="Project Alpha")
     reason: Optional[str] = Field(default=None, example="Reason for shift change")
     lead_approval: Optional[str] = Field(default=None, example="Approved/Rejected")
-    lead_remarks: Optional[str] = Field(default=None, example="Lead's comments")
     hr_verification: Optional[str] = Field(default=None, example="Yes/No")
     manager_approval: Optional[str] = Field(default=None, example="Approved/Rejected")
     manager_remarks: Optional[str] = Field(default=None, example="Manager's comments")
