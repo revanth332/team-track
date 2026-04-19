@@ -2,6 +2,10 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import date, time
 
+class BandWidth(BaseModel):
+    percentage: int = Field(..., example=75)
+    hours: int = Field(..., example=2)
+
 # Base model containing the common fields
 class UserBase(BaseModel):
     name: str = Field(..., example="Jane Doe")
@@ -11,6 +15,7 @@ class UserBase(BaseModel):
     image: Optional[str] = Field(default=None, example="https://s3.aws.com/profile.jpg")
     role: str = Field(..., example="Frontend Developer")
     active_projects: List[str] = Field(default=[], example=["Project Alpha", "Core App"])
+    bandwidth: BandWidth = Field(..., example={"percentage": 75, "hours": 2})
     
     # Replaced shift string with start and end times
     shift_start: time = Field(default=time(9, 0), example="16:00:00") # 4:00 PM
@@ -35,6 +40,7 @@ class UserUpdate(BaseModel):
     shift_end: Optional[time] = None
     skills: Optional[List[str]] = None
     birthday: Optional[date] = None
+    bandwidth: Optional[BandWidth] = None
 
 # Schema for sending data back to frontend (Response)
 class UserResponse(UserBase):

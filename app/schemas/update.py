@@ -20,6 +20,7 @@ class WeeklyUpdateBase(BaseModel):
     # We use week_end_date (e.g., the Monday of that week) to easily group everyone's updates together
     week_end_date: date = Field(..., example="2026-04-06")
     username: str = Field(..., example="jane_doe")
+    occupancy: Optional[float] = Field(default=None, example=75)
 
 class WeeklyUpdateCreate(WeeklyUpdateBase):
     pass
@@ -29,7 +30,7 @@ class WeeklyUpdateModify(BaseModel):
     empid: Optional[str] = None
     week_end_date: Optional[date] = None
     projects: Optional[List[ProjectInfo]] = None
-
+    occupancy: Optional[float] = None
 
 class WeeklyUpdateResponse(WeeklyUpdateBase):
     id: str

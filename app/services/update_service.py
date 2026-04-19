@@ -13,6 +13,7 @@ def update_helper(update_doc) -> dict:
         "username": update_doc.get("username"),
         "week_end_date": update_doc.get("week_end_date"),
         "projects": update_doc.get("projects"),
+        "occupancy":update_doc.get("occupancy"),
         "created_at": update_doc.get("created_at")
     }
 

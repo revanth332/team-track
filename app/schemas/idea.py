@@ -1,6 +1,11 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import List, Optional,Set
 from datetime import datetime
+from enum import Enum
+
+class ContentType(str, Enum):
+    BLOG = "blog"
+    VIDEO = "video"
 
 class IdeaBase(BaseModel):
     username: Optional[str] = Field(default=None, example="alice_johnson")
@@ -13,6 +18,10 @@ class IdeaBase(BaseModel):
     blog_assignee_username: Optional[str] = Field(default=None, example="john_smith")
     video_assignee_username: Optional[str] = Field(default=None, example="emily_davis")
     added_by: Optional[str] = Field(default=None, example="Alice Johnson")
+    tags: List[ContentType] = Field(
+        ..., 
+        description="Must contain 'blog', 'video', or both.",
+    )
 
 class IdeaCreate(IdeaBase):
     pass
@@ -27,6 +36,8 @@ class IdeaUpdate(BaseModel):
     blog_assignee_username: Optional[str] = Field(default=None, example="john_smith")
     video_assignee_username: Optional[str] = Field(default=None, example="emily_davis")
     added_by: Optional[str] = None
+    tags: Optional[List[ContentType]] = None
+
 
 class IdeaResponse(IdeaBase):
     id: str

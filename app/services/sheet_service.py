@@ -157,6 +157,11 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
         if criteria_str:
             criteria_str += " and "
         criteria_str += f'("Employee Name" = "{request.name}")'
+    if request.status:
+        status_value = "" if request.status == "Pending" else request.status
+        if criteria_str:
+            criteria_str += " and "
+        criteria_str += f'("Sandeep\nLead Approval\nYes/No" = "{status_value}")'
     
     # 3. Method for fetching is "worksheet.records.fetch"
     payload = {
@@ -238,7 +243,6 @@ async def update_row_zoho_sheet(request: UpdateSheetRequest, name: str, date: st
         zoho_field = field_mapping.get(key)
         if zoho_field:
             shift_record[zoho_field] = value
-    
     criteria_str = f'"Date"="{date}" and "Employee Name"="{name}"'
 
     payload = {

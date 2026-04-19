@@ -19,7 +19,8 @@ def idea_helper(idea_doc) -> dict:
         "blog_assignee_username":idea_doc.get("blog_assignee_username"),
         "video_assignee_username": idea_doc.get("video_assignee_username"),
         "added_by": idea_doc.get("added_by"),
-        "created_at": idea_doc.get("created_at")
+        "created_at": idea_doc.get("created_at"),
+        "tags": idea_doc.get("tags",[])
     }
 
 async def get_idea_by_id(idea_id: str):
@@ -40,7 +41,7 @@ async def create_idea(idea_data: IdeaCreate):
     new_idea = await db.ideas.find_one({"_id": result.inserted_id})
     return idea_helper(new_idea)
 
-async def get_all_ideas(username:str = None,title: str = None):
+async def get_all_ideas(username:str = None,title: str = None,status: str = None):
     db = get_database()
     ideas =[]
     # Sort by newest first
@@ -49,6 +50,8 @@ async def get_all_ideas(username:str = None,title: str = None):
         query["username"] = username
     if title:
         query["title"] = {"$regex": title, "$options": "i"}
+    if status:
+        query["status"] = status
     async for idea in db.ideas.find(query).sort("created_at", -1):
         ideas.append(idea_helper(idea))
     return ideas
@@ -101,7 +104,7 @@ async def update_idea(idea_id: str, idea_data: IdeaUpdate):
                 
                 # Save the new goal
                 await create_goal(new_goal)
-        elif idea_data.video_assignee:
+        if idea_data.video_assignee:
             type = "video"
             assignee = idea_data.video_assignee
             assignee_username = idea_data.video_assignee_username

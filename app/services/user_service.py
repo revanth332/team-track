@@ -20,7 +20,8 @@ def user_helper(user) -> dict:
         "shift_end": user.get("shift_end"),
         
         "skills": user.get("skills",[]),
-        "birthday": user.get("birthday")
+        "birthday": user.get("birthday"),
+        "bandwidth": user.get("bandwidth")
     }
 
 async def create_user(user_data: UserCreate):
