@@ -21,6 +21,7 @@ class WeeklyUpdateBase(BaseModel):
     week_end_date: date = Field(..., example="2026-04-06")
     username: str = Field(..., example="jane_doe")
     occupancy: Optional[float] = Field(default=None, example=75)
+    seen_by_lead: Optional[bool] = Field(default=False, example=True)
 
 class WeeklyUpdateCreate(WeeklyUpdateBase):
     pass
@@ -31,6 +32,8 @@ class WeeklyUpdateModify(BaseModel):
     week_end_date: Optional[date] = None
     projects: Optional[List[ProjectInfo]] = None
     occupancy: Optional[float] = None
+    seen_by_lead: Optional[bool] = None
+
 
 class WeeklyUpdateResponse(WeeklyUpdateBase):
     id: str

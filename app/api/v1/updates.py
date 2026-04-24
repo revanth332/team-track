@@ -33,6 +33,16 @@ async def edit_weekly_update(update_id: str, update_data: WeeklyUpdateModify = B
         raise HTTPException(status_code=404, detail="Update not found")
     return updated_doc
 
+@router.post("/{update_id}/seen", response_model=WeeklyUpdateResponse)
+async def mark_update_as_seen(update_id: str):
+    """
+    Mark a weekly update as seen by the lead.
+    """
+    updated_doc = await update_service.mark_update_as_seen(update_id)
+    if not updated_doc:
+        raise HTTPException(status_code=404, detail="Update not found")
+    return updated_doc
+
 @router.delete("/{update_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_weekly_update(update_id: str):
     """

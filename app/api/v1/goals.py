@@ -15,9 +15,9 @@ async def add_new_goal(
     return await goal_service.create_goal(goal)
 
 @router.get("/", response_model=List[GoalResponse], dependencies=[Depends(get_current_user)])
-async def list_all_goals(username:str = Query(None, description="Filter goals by submitter's username"),year: int = Query(None, description="Filter goals by year"),quarter:str = Query(None, description="Filter goals by quarter (e.g. Q1, Q2)")):
+async def list_all_goals(username:str = Query(None, description="Filter goals by submitter's username"),year: int = Query(None, description="Filter goals by year"),quarter:str = Query(None, description="Filter goals by quarter (e.g. Q1, Q2)"),type:str = Query(None, description="Filter goals by type")):
     """ Fetch all Quarterly Goals """
-    return await goal_service.get_all_goals(username,year,quarter)
+    return await goal_service.get_all_goals(username,year,quarter,type)
 
 @router.put("/{goal_id}", response_model=GoalResponse)
 async def modify_goal(

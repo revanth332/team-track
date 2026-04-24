@@ -17,11 +17,11 @@ async def add_new_idea(
     return await idea_service.create_idea(idea)
 
 @router.get("/", response_model=List[IdeaResponse], dependencies=[Depends(get_current_user)])
-async def list_all_ideas(username:str = Query(None, description="Filter ideas by submitter's username"),title: str = Query(None, description="Filter ideas by title keyword"),status: str = Query(None, description="Filter ideas by status (Pending, Approved, Rejected)")):
+async def list_all_ideas(username:str = Query(None, description="Filter ideas by submitter's username"),title: str = Query(None, description="Filter ideas by title keyword"),status: str = Query(None, description="Filter ideas by status (Pending, Approved, Rejected)"),tag:str = Query(None, description="Filter ideas by tag")):
     """
     Fetch all ideas.
     """
-    return await idea_service.get_all_ideas(username,title,status)
+    return await idea_service.get_all_ideas(username,title,status,tag)
 
 @router.put("/{idea_id}", response_model=IdeaResponse)
 async def modify_idea(

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Body, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
 from app.api.dependencies import get_current_user
 from app.schemas.shift import ShiftResponse
 from app.services import sheet_service
@@ -13,6 +13,8 @@ async def list_shifts(request: GetSheetRequest = Query(...)):
     """
     Fetch shift changes. Optionally filter by a date range.
     """
+    if not request.year or not request.month:
+        raise HTTPException(status_code=400, detail="Year and month query parameters are required")
     return await sheet_service.get_zoho_sheet_data(request)
 
 @router.post("/", response_model=ShiftResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)])

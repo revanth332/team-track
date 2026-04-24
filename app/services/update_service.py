@@ -1,4 +1,5 @@
 from http.client import HTTPException
+from unittest import result
 
 from bson import ObjectId
 from datetime import datetime, timezone
@@ -14,7 +15,8 @@ def update_helper(update_doc) -> dict:
         "week_end_date": update_doc.get("week_end_date"),
         "projects": update_doc.get("projects"),
         "occupancy":update_doc.get("occupancy"),
-        "created_at": update_doc.get("created_at")
+        "created_at": update_doc.get("created_at"),
+        "seen_by_lead": update_doc.get("seen_by_lead", False)
     }
 
 async def create_weekly_update(data: WeeklyUpdateCreate):
@@ -76,9 +78,18 @@ async def modify_weekly_update(update_id: str, data: WeeklyUpdateModify):
     
     if "week_end_date" in update_data and update_data["week_end_date"]:
         update_data["week_end_date"] = datetime.combine(update_data["week_end_date"], datetime.min.time())
-
     if update_data:
         await db.weekly_updates.update_one({"_id": ObjectId(update_id)}, {"$set": update_data})
+    
+    updated_doc = await db.weekly_updates.find_one({"_id": ObjectId(update_id)})
+    return update_helper(updated_doc) if updated_doc else None
+
+async def mark_update_as_seen(update_id: str):
+    db = get_database()
+    if not ObjectId.is_valid(update_id):
+        return None
+    
+    await db.weekly_updates.update_one({"_id": ObjectId(update_id)}, [{"$set": {"seen_by_lead": {"$not": [{"$ifNull": ["$seen_by_lead", False]}]}}}])
     
     updated_doc = await db.weekly_updates.find_one({"_id": ObjectId(update_id)})
     return update_helper(updated_doc) if updated_doc else None

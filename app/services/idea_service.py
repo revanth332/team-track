@@ -41,7 +41,7 @@ async def create_idea(idea_data: IdeaCreate):
     new_idea = await db.ideas.find_one({"_id": result.inserted_id})
     return idea_helper(new_idea)
 
-async def get_all_ideas(username:str = None,title: str = None,status: str = None):
+async def get_all_ideas(username:str = None,title: str = None,status: str = None,tag:str = None):
     db = get_database()
     ideas =[]
     # Sort by newest first
@@ -52,6 +52,8 @@ async def get_all_ideas(username:str = None,title: str = None,status: str = None
         query["title"] = {"$regex": title, "$options": "i"}
     if status:
         query["status"] = status
+    if tag:
+        query["tags"] = tag
     async for idea in db.ideas.find(query).sort("created_at", -1):
         ideas.append(idea_helper(idea))
     return ideas

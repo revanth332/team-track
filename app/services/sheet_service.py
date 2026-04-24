@@ -151,6 +151,8 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
     }
 
     criteria_str = ""
+    if request.year and request.month:
+        criteria_str += f'("Date" contains "{request.month}/{request.year}" or "Date" contains "{request.month:02d}/{request.year}")'
     if request.date:
         criteria_str += f'("Date" = "{request.date}")'
     if request.name:
@@ -180,55 +182,20 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
         data = response.json()
         records = data.get("records", [])
         valid_records = [r for r in records if r.get("Employee Name") and r.get("Date")]
-        shifts = [shift_helper(record) for record in valid_records]
-
-        if request.year or request.month:
-            filtered_records =[]
-            
-            for row in shifts:
-                # Get the date string from the row. 
-                # (Make sure "Date" matches your exact column header case)
-                date_str = row.get("date") 
-                if not date_str:
-                    continue # Skip rows with empty dates
-                    
-                try:
-                    # Parse the date string into a Python datetime object
-                    # NOTE: Change "%d-%m-%Y" to match how dates look in your sheet!
-                    # Examples: 
-                    # "25/12/2026" -> "%d/%m/%Y"
-                    # "2026-12-25" -> "%Y-%m-%d"
-                    row_date = datetime.strptime(date_str, "%d/%m/%Y")
-                    
-                    # Check Year condition
-                    match_year = (row_date.year == request.year) if request.year else True
-                    
-                    # Check Month condition
-                    match_month = (row_date.month == request.month) if request.month else True
-                    
-                    # If both match, keep the row
-                    if match_year and match_month:
-                        filtered_records.append(row)
-                        
-                except ValueError:
-                    # If a date fails to parse, just skip it or log it
-                    print(f"Warning: Could not parse date format for: {date_str}")
-                    continue
-            
-            # Replace records with our fully filtered list
-            shifts = filtered_records
+        shifts = sorted([shift_helper(record) for record in valid_records], key=lambda x: datetime.strptime(x["date"], "%d/%m/%Y"), reverse=True)
 
         return {
                  "status": "success",
-                 "count": len(data.get("records", [])),
-                 "data": shifts
+                 "count": len(data.get("shifts", [])),
+                 "data": shifts,
+                 "payload":payload
              }
     else:
         raise HTTPException(
             status_code=response.status_code, 
             detail=f"Zoho API Error: {response.text}"
         )
-    
+   
 async def update_row_zoho_sheet(request: UpdateSheetRequest, name: str, date: str):
     """
     Updates a specific row index (e.g., row 5) with new_data.

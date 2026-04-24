@@ -4,7 +4,7 @@ from datetime import date, time
 
 class BandWidth(BaseModel):
     percentage: int = Field(..., example=75)
-    hours: int = Field(..., example=2)
+    hours: float = Field(..., example=2)
 
 # Base model containing the common fields
 class UserBase(BaseModel):
