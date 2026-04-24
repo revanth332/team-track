@@ -33,7 +33,7 @@ field_mapping = {
     "hr_verification": "HR Verified\nBiometric\nYes/No",
     "manager_approval": "Vamsi Approval",
     "manager_remarks": "Manager Comments if any",
-    "hr_lead_comments": "Lead/HR\ncomments"
+    "lead_hr_comments": "Lead/HR\ncomments"
 }
  
 async def add_row_zoho_sheet(request: CreateSheetRequest):
@@ -187,8 +187,7 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
         return {
                  "status": "success",
                  "count": len(data.get("shifts", [])),
-                 "data": shifts,
-                 "payload":payload
+                 "data": shifts
              }
     else:
         raise HTTPException(

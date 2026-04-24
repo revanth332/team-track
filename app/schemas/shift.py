@@ -13,7 +13,7 @@ class ShiftBase(BaseModel):
     hr_verification: Optional[str] = Field(default=None, example="Yes/No")
     manager_approval: Optional[str] = Field(default=None, example="Approved/Rejected")
     manager_remarks: Optional[str] = Field(default=None, example="Manager's comments")
-    hr_lead_comments: Optional[str] = Field(default=None, example="HR/Lead's comments")
+    lead_hr_comments: Optional[str] = Field(default=None, example="HR/Lead's comments")
 
 
 class ShiftResponse(BaseModel):
