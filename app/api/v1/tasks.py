@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
-from typing import List, Optional
+from typing import Optional
 
 from app.api.dependencies import get_current_user
-from app.schemas.task import TaskCreate, TaskResponse, TaskReview, TaskSubmission, TaskUpdate
+from app.schemas.task import TaskCreate, TaskListResponse, TaskResponse, TaskReview, TaskSubmission, TaskUpdate
 from app.services import task_service
 
 
@@ -29,11 +29,13 @@ async def create_task(
     return await task_service.create_task(task, current_user["username"], created_by)
 
 
-@router.get("/", response_model=List[TaskResponse])
+@router.get("/", response_model=TaskListResponse)
 async def list_tasks(
     username: Optional[str] = Query(None, description="Filter tasks by creator username"),
     status: Optional[str] = Query(None, description="Filter tasks by status"),
     tag: Optional[str] = Query(None, description="Filter tasks by tag"),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(20, ge=1, le=100, description="Items per page"),
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -41,7 +43,7 @@ async def list_tasks(
     """
     if not current_user.get("is_admin"):
         username = current_user["username"]
-    return await task_service.get_all_tasks(username, status, tag)
+    return await task_service.get_all_tasks(username, status, tag, page, per_page)
 
 
 @router.get("/{task_id}", response_model=TaskResponse)

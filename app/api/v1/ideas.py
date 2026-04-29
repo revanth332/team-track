@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query, status, Depends, Body
-from typing import List
-from app.schemas.idea import IdeaCreate, IdeaUpdate, IdeaResponse
+from app.schemas.idea import IdeaCreate, IdeaListResponse, IdeaUpdate, IdeaResponse
 from app.services import idea_service
 from app.api.dependencies import get_current_user
 
@@ -16,12 +15,19 @@ async def add_new_idea(
     """
     return await idea_service.create_idea(idea)
 
-@router.get("/", response_model=List[IdeaResponse], dependencies=[Depends(get_current_user)])
-async def list_all_ideas(username:str = Query(None, description="Filter ideas by submitter's username"),title: str = Query(None, description="Filter ideas by title keyword"),status: str = Query(None, description="Filter ideas by status (Pending, Approved, Rejected)"),tag:str = Query(None, description="Filter ideas by tag")):
+@router.get("/", response_model=IdeaListResponse, dependencies=[Depends(get_current_user)])
+async def list_all_ideas(
+    username: str = Query(None, description="Filter ideas by submitter's username"),
+    title: str = Query(None, description="Filter ideas by title keyword"),
+    status: str = Query(None, description="Filter ideas by status (Pending, Approved, Rejected)"),
+    tag: str = Query(None, description="Filter ideas by tag"),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(20, ge=1, le=100, description="Items per page"),
+):
     """
     Fetch all ideas.
     """
-    return await idea_service.get_all_ideas(username,title,status,tag)
+    return await idea_service.get_all_ideas(username, title, status, tag, page, per_page)
 
 @router.put("/{idea_id}", response_model=IdeaResponse)
 async def modify_idea(

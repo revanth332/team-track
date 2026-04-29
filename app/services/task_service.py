@@ -23,6 +23,7 @@ def task_helper(task_doc) -> dict:
         "updated_at": task_doc.get("updated_at"),
         "submitted_at": task_doc.get("submitted_at"),
         "screenshot_url": task_doc.get("screenshot_url"),
+        "links": task_doc.get("links", []),
         "submission_notes": task_doc.get("submission_notes"),
         "reviewed_by": task_doc.get("reviewed_by"),
         "reviewed_at": task_doc.get("reviewed_at"),
@@ -55,6 +56,8 @@ async def get_all_tasks(
     username: str = None,
     status: str = None,
     tag: str = None,
+    page: int = 1,
+    per_page: int = 20,
 ):
     db = get_database()
     query = {}
@@ -65,10 +68,21 @@ async def get_all_tasks(
     if tag:
         query["tags"] = tag
 
+    total = await db.tasks.count_documents(query)
+    skip = (page - 1) * per_page
     tasks = []
-    async for task in db.tasks.find(query).sort("created_at", -1):
+    cursor = db.tasks.find(query).sort("created_at", -1).skip(skip).limit(per_page)
+    async for task in cursor:
         tasks.append(task_helper(task))
-    return tasks
+
+    return {
+        "status": "success",
+        "count": len(tasks),
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "data": tasks,
+    }
 
 
 async def update_task(task_id: str, task_data: TaskUpdate):
@@ -103,6 +117,7 @@ async def submit_task(task_id: str, submission: TaskSubmission, username: str):
         "submitted_at": now,
         "updated_at": now,
         "screenshot_url": submission_dict.get("screenshot_url"),
+        "links": submission_dict.get("links", []),
         "submission_notes": submission_dict.get("notes"),
     }
 

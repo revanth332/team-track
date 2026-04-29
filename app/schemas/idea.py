@@ -44,3 +44,12 @@ class IdeaResponse(IdeaBase):
     created_at: datetime
     
     model_config = ConfigDict(populate_by_name=True)
+
+
+class IdeaListResponse(BaseModel):
+    status: str = "success"
+    count: int
+    total: int
+    page: int
+    per_page: int
+    data: List[IdeaResponse]

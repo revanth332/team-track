@@ -41,7 +41,14 @@ async def create_idea(idea_data: IdeaCreate):
     new_idea = await db.ideas.find_one({"_id": result.inserted_id})
     return idea_helper(new_idea)
 
-async def get_all_ideas(username:str = None,title: str = None,status: str = None,tag:str = None):
+async def get_all_ideas(
+    username: str = None,
+    title: str = None,
+    status: str = None,
+    tag: str = None,
+    page: int = 1,
+    per_page: int = 20,
+):
     db = get_database()
     ideas =[]
     # Sort by newest first
@@ -54,9 +61,21 @@ async def get_all_ideas(username:str = None,title: str = None,status: str = None
         query["status"] = status
     if tag:
         query["tags"] = tag
-    async for idea in db.ideas.find(query).sort("created_at", -1):
+
+    total = await db.ideas.count_documents(query)
+    skip = (page - 1) * per_page
+    cursor = db.ideas.find(query).sort("created_at", -1).skip(skip).limit(per_page)
+    async for idea in cursor:
         ideas.append(idea_helper(idea))
-    return ideas
+
+    return {
+        "status": "success",
+        "count": len(ideas),
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "data": ideas,
+    }
 
 async def update_idea(idea_id: str, idea_data: IdeaUpdate):
     db = get_database()
