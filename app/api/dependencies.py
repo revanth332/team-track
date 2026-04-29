@@ -24,12 +24,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
         is_admin: str = payload.get("admin", False)
+        name: str = payload.get("name")
         
         if username is None:
             raise credentials_exception
             
         # Return a simple dictionary (or Pydantic model) with the user info
-        return {"username": username, "is_admin": is_admin}
+        return {"username": username, "name": name, "is_admin": is_admin}
         
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")

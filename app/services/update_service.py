@@ -1,4 +1,4 @@
-from http.client import HTTPException
+from fastapi import HTTPException
 from unittest import result
 
 from bson import ObjectId
