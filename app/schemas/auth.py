@@ -1,8 +1,11 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 class LoginRequest(BaseModel):
     username: str
-    passkey: str
+    password: Optional[str] = None
+    passkey: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
