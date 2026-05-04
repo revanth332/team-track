@@ -39,20 +39,28 @@ async def create_new_user(user: UserCreate = Body(...)):
     return await user_service.create_user(normalized_user)
 
 @router.get("/", response_model=List[UserResponse])
-async def list_team_members(current_user: dict = Depends(get_current_user)):
+async def list_team_members(
+    lead_id: str = None,
+    manager_id: str = None,
+    current_user: dict = Depends(get_current_user),
+):
     """
     Fetch all team members for the directory.
     """
     position = (current_user.get("position") or "").lower()
-    username = current_user.get("username")
-
-    if position == "lead":
-        return await user_service.get_all_users(lead_id=username)
 
     if position == "manager":
-        return await user_service.get_all_users(manager_id=username, position="lead")
+        normalized_lead_id = lead_id.strip().lower() if lead_id else None
+        normalized_manager_id = manager_id.strip().lower() if manager_id else None
+        return await user_service.get_all_users(
+            lead_id=normalized_lead_id,
+            manager_id=normalized_manager_id,
+        )
 
-    return await user_service.get_all_users()
+    current_lead_id = current_user.get("lead_id")
+    if not current_lead_id:
+        return []
+    return await user_service.get_all_users(lead_id=current_lead_id)
 
 @router.post("/assign", response_model=UserResponse)
 async def assign_user(

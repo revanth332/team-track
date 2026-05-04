@@ -48,6 +48,8 @@ async def get_all_ideas(
     tag: str = None,
     page: int = 1,
     per_page: int = 20,
+    manager_id: str = None,
+    lead_id: str = None
 ):
     db = get_database()
     ideas =[]
@@ -61,6 +63,10 @@ async def get_all_ideas(
         query["status"] = status
     if tag:
         query["tags"] = tag
+    if manager_id:
+        query["manager_id"] = manager_id
+    if lead_id:
+        query["lead_id"] = lead_id
 
     total = await db.ideas.count_documents(query)
     skip = (page - 1) * per_page

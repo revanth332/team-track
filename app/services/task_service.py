@@ -28,6 +28,8 @@ def task_helper(task_doc) -> dict:
         "reviewed_by": task_doc.get("reviewed_by"),
         "reviewed_at": task_doc.get("reviewed_at"),
         "review_comments": task_doc.get("review_comments"),
+        "lead_id": task_doc.get("lead_id"),
+        "manager_id": task_doc.get("manager_id"),
     }
 
 
@@ -44,11 +46,17 @@ async def create_task(task_data: TaskCreate, username: str, created_by: str):
     return task_helper(new_task)
 
 
-async def get_task_by_id(task_id: str):
+async def get_task_by_id(task_id: str, lead_id: str = None, manager_id: str = None):
     db = get_database()
     if not ObjectId.is_valid(task_id):
         return None
-    task_doc = await db.tasks.find_one({"_id": ObjectId(task_id)})
+    query = {"_id": ObjectId(task_id)}
+    if lead_id:
+        query["lead_id"] = lead_id
+    if manager_id:
+        query["manager_id"] = manager_id
+
+    task_doc = await db.tasks.find_one(query)
     return task_helper(task_doc) if task_doc else None
 
 
@@ -58,6 +66,8 @@ async def get_all_tasks(
     tag: str = None,
     page: int = 1,
     per_page: int = 20,
+    lead_id: str = None,
+    manager_id: str = None,
 ):
     db = get_database()
     query = {}
@@ -67,6 +77,10 @@ async def get_all_tasks(
         query["status"] = status
     if tag:
         query["tags"] = tag
+    if lead_id:
+        query["lead_id"] = lead_id
+    if manager_id:
+        query["manager_id"] = manager_id
 
     total = await db.tasks.count_documents(query)
     skip = (page - 1) * per_page

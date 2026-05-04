@@ -23,9 +23,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         # Decode the token using your SECRET_KEY
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
-        is_admin: str = payload.get("admin", False)
         name: str = payload.get("name")
-        role: str = payload.get("role", "member")
         position: str = payload.get("position")
         lead_id: str = payload.get("lead_id")
         manager_id: str = payload.get("manager_id")
@@ -37,11 +35,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         return {
             "username": username,
             "name": name,
-            "role": role,
             "position": position,
             "lead_id": lead_id,
             "manager_id": manager_id,
-            "is_admin": is_admin,
         }
         
     except jwt.ExpiredSignatureError:

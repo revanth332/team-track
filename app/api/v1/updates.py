@@ -17,15 +17,32 @@ async def submit_weekly_update(
     """
     return await update_service.create_weekly_update(update_data)
 
-@router.get("/", response_model=List[WeeklyUpdateResponse], dependencies=[Depends(get_current_user)])
+@router.get("/", response_model=List[WeeklyUpdateResponse])
 async def list_weekly_updates(
     week_end_date: Optional[date] = Query(None, description="Filter by the Monday of the week (YYYY-MM-DD)"),
-    name: Optional[str] = Query(None, description="Filter updates by team member's name")
+    name: Optional[str] = Query(None, description="Filter updates by team member's name"),
+    lead_id: Optional[str] = Query(None, description="Filter updates by lead username"),
+    manager_id: Optional[str] = Query(None, description="Filter updates by manager username"),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Fetch all updates, optionally filtered by a specific week.
     """
-    return await update_service.get_weekly_updates(week_end_date,name)
+    position = (current_user.get("position") or "").lower()
+    if position == "manager":
+        lead_id = lead_id.strip().lower() if lead_id else None
+        manager_id = manager_id.strip().lower() if manager_id else None
+    else:
+        lead_id = current_user.get("lead_id")
+        manager_id = None
+        if not lead_id:
+            return []
+    return await update_service.get_weekly_updates(
+        week_end_date,
+        name,
+        lead_id=lead_id,
+        manager_id=manager_id,
+    )
 
 @router.put("/{update_id}", response_model=WeeklyUpdateResponse)
 async def edit_weekly_update(

@@ -62,10 +62,9 @@ async def register_user(user_data: UserRegister):
         "name": user_data.full_name,
         "username": user_data.username,
         "email": user_data.email,
-        "role": "member",
         "lead_id": None,
         "manager_id": None,
-        "position": None,
+        "position": "employee",
         "password_hash": hash_password(user_data.password),
     }
 

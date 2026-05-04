@@ -16,7 +16,9 @@ def update_helper(update_doc) -> dict:
         "projects": update_doc.get("projects"),
         "occupancy":update_doc.get("occupancy"),
         "created_at": update_doc.get("created_at"),
-        "seen_by_lead": update_doc.get("seen_by_lead", False)
+        "seen_by_lead": update_doc.get("seen_by_lead", False),
+        "lead_id": update_doc.get("lead_id"),
+        "manager_id": update_doc.get("manager_id"),
     }
 
 async def create_weekly_update(data: WeeklyUpdateCreate):
@@ -50,7 +52,12 @@ async def create_weekly_update(data: WeeklyUpdateCreate):
     new_update = await db.weekly_updates.find_one({"_id": result.inserted_id})
     return update_helper(new_update)
 
-async def get_weekly_updates(week_end_date: str = None,name: str = None):
+async def get_weekly_updates(
+    week_end_date: str = None,
+    name: str = None,
+    lead_id: str = None,
+    manager_id: str = None,
+):
     db = get_database()
     query = {}
     
@@ -61,6 +68,10 @@ async def get_weekly_updates(week_end_date: str = None,name: str = None):
         query["week_end_date"] = parsed_date
     if name:
         query["name"] = name
+    if lead_id:
+        query["lead_id"] = lead_id
+    if manager_id:
+        query["manager_id"] = manager_id
 
     updates =[]
     # Sort descending by created_at so newest updates are at the top

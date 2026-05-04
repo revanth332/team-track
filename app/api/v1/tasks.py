@@ -32,6 +32,8 @@ async def create_task(
 @router.get("/", response_model=TaskListResponse)
 async def list_tasks(
     username: Optional[str] = Query(None, description="Filter tasks by creator username"),
+    lead_id: Optional[str] = Query(None, description="Filter tasks by lead username"),
+    manager_id: Optional[str] = Query(None, description="Filter tasks by manager username"),
     status: Optional[str] = Query(None, description="Filter tasks by status"),
     tag: Optional[str] = Query(None, description="Filter tasks by tag"),
     page: int = Query(1, ge=1, description="Page number"),
@@ -39,26 +41,58 @@ async def list_tasks(
     current_user: dict = Depends(get_current_user),
 ):
     """
-    Fetch tasks. Non-admin users only see their own tasks.
+    Fetch tasks scoped by the current user's team hierarchy.
     """
-    if not current_user.get("is_admin"):
-        username = current_user["username"]
-    return await task_service.get_all_tasks(username, status, tag, page, per_page)
+    position = (current_user.get("position") or "").lower()
+    if position == "manager":
+        lead_id = lead_id.strip().lower() if lead_id else None
+        manager_id = manager_id.strip().lower() if manager_id else None
+    else:
+        lead_id = current_user.get("lead_id")
+        manager_id = None
+        if not lead_id:
+            return {
+                "status": "success",
+                "count": 0,
+                "total": 0,
+                "page": page,
+                "per_page": per_page,
+                "data": [],
+            }
+    return await task_service.get_all_tasks(
+        username,
+        status,
+        tag,
+        page,
+        per_page,
+        lead_id=lead_id,
+        manager_id=manager_id,
+    )
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(
     task_id: str,
+    lead_id: Optional[str] = Query(None, description="Filter task by lead username"),
+    manager_id: Optional[str] = Query(None, description="Filter task by manager username"),
     current_user: dict = Depends(get_current_user),
 ):
     """
     Fetch a single task.
     """
-    task = await task_service.get_task_by_id(task_id)
+    position = (current_user.get("position") or "").lower()
+    if position == "manager":
+        lead_id = lead_id.strip().lower() if lead_id else None
+        manager_id = manager_id.strip().lower() if manager_id else None
+    else:
+        lead_id = current_user.get("lead_id")
+        manager_id = None
+        if not lead_id:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+    task = await task_service.get_task_by_id(task_id, lead_id=lead_id, manager_id=manager_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    if not current_user.get("is_admin") and task["username"] != current_user["username"]:
-        raise HTTPException(status_code=403, detail="You can only view your own tasks")
     return task
 
 

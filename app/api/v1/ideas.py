@@ -15,19 +15,47 @@ async def add_new_idea(
     """
     return await idea_service.create_idea(idea)
 
-@router.get("/", response_model=IdeaListResponse, dependencies=[Depends(get_current_user)])
+@router.get("/", response_model=IdeaListResponse)
 async def list_all_ideas(
     username: str = Query(None, description="Filter ideas by submitter's username"),
+    lead_id: str = Query(None, description="Filter ideas by lead username"),
+    manager_id: str = Query(None, description="Filter ideas by manager username"),
     title: str = Query(None, description="Filter ideas by title keyword"),
     status: str = Query(None, description="Filter ideas by status (Pending, Approved, Rejected)"),
     tag: str = Query(None, description="Filter ideas by tag"),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=100, description="Items per page"),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Fetch all ideas.
     """
-    return await idea_service.get_all_ideas(username, title, status, tag, page, per_page)
+    position = (current_user.get("position") or "").lower()
+    if position == "manager":
+        lead_id = lead_id.strip().lower() if lead_id else None
+        manager_id = manager_id.strip().lower() if manager_id else None
+    else:
+        lead_id = current_user.get("lead_id")
+        manager_id = None
+        if not lead_id:
+            return {
+                "status": "success",
+                "count": 0,
+                "total": 0,
+                "page": page,
+                "per_page": per_page,
+                "data": [],
+            }
+    return await idea_service.get_all_ideas(
+        username,
+        title,
+        status,
+        tag,
+        page,
+        per_page,
+        manager_id=manager_id,
+        lead_id=lead_id,
+    )
 
 @router.put("/{idea_id}", response_model=IdeaResponse)
 async def modify_idea(
