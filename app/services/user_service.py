@@ -57,20 +57,14 @@ async def create_user(user_data: UserCreate):
     return user_helper(created_user)
 
 async def register_user(user_data: UserRegister):
-    db = get_database()
-    user_dict = {
-        "name": user_data.full_name,
-        "username": user_data.username,
-        "email": user_data.email,
-        "lead_id": None,
-        "manager_id": None,
-        "position": "employee",
-        "password_hash": hash_password(user_data.password),
-    }
-
-    new_user = await db.users.insert_one(user_dict)
-    created_user = await db.users.find_one({"_id": new_user.inserted_id})
-    return user_helper(created_user)
+    full_user_data = UserCreate(
+        name=user_data.full_name,
+        username=user_data.username,
+        email=user_data.email,
+        password=user_data.password,
+        position="employee"  # Explicit override from your original code
+    )
+    return await create_user(full_user_data)
 
 async def get_all_users(lead_id: str = None, manager_id: str = None, position: str = None):
     db = get_database()

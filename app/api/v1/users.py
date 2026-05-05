@@ -52,6 +52,8 @@ async def list_team_members(
     if position == "manager":
         normalized_lead_id = lead_id.strip().lower() if lead_id else None
         normalized_manager_id = manager_id.strip().lower() if manager_id else None
+        if not normalized_lead_id and not normalized_manager_id:
+            normalized_manager_id = current_user.get("username")
         return await user_service.get_all_users(
             lead_id=normalized_lead_id,
             manager_id=normalized_manager_id,
