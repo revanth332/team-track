@@ -64,6 +64,24 @@ async def list_team_members(
         return []
     return await user_service.get_all_users(lead_id=current_lead_id)
 
+@router.get("/all", response_model=List[UserResponse])
+async def list_team_members(
+    position: str = None,
+    name: str = None,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Fetch all team members for the directory.
+    """
+    position_from_token = (current_user.get("position") or "").lower()
+
+    if position_from_token != "manager":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only managers can access the full user list."
+        )
+    return await user_service.get_all_users(position,name)
+
 @router.post("/assign", response_model=UserResponse)
 async def assign_user(
     assignment: UserAssign = Body(...),
@@ -145,11 +163,14 @@ async def deassign_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only managers and leads can deassign users."
         )
+    
+    is_deassigning_lead = current_position == "lead"
+    is_deassigning_manager = current_position == "manager"
 
     normalized_assignment = assignment.model_copy(
         update={"username": assignment.username.strip().lower()}
     )
-    updated_user = await user_service.deassign_user(normalized_assignment)
+    updated_user = await user_service.deassign_user(normalized_assignment,is_deassigning_lead,is_deassigning_manager)
     if not updated_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return updated_user

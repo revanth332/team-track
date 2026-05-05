@@ -66,7 +66,7 @@ async def register_user(user_data: UserRegister):
     )
     return await create_user(full_user_data)
 
-async def get_all_users(lead_id: str = None, manager_id: str = None, position: str = None):
+async def get_all_users(lead_id: str = None, manager_id: str = None, position: str = None,name: str = None):
     db = get_database()
     query = {}
     if lead_id:
@@ -75,6 +75,12 @@ async def get_all_users(lead_id: str = None, manager_id: str = None, position: s
         query["manager_id"] = manager_id
     if position:
         query["position"] = position
+    if name:
+        query["$or"] =[
+            # "$options": "i" makes the search case-insensitive
+            {"name": {"$regex": name, "$options": "i"}},
+            {"username": {"$regex": name, "$options": "i"}}
+        ]
 
     users =[]
     async for user in db.users.find(query):
@@ -127,11 +133,16 @@ async def assign_user_position(user_data: UserPositionAssign):
     updated_user = await db.users.find_one({"username": user_data.username})
     return user_helper(updated_user)
 
-async def deassign_user(user_data: UserDeAssign):
+async def deassign_user(user_data: UserDeAssign, is_deassigning_lead: bool, is_deassigning_manager: bool):
     db = get_database()
+    deassign_dict = {}
+    if is_deassigning_lead:
+        deassign_dict["lead_id"] = None
+    if is_deassigning_manager:
+        deassign_dict["manager_id"] = None
     result = await db.users.update_one(
         {"username": user_data.username},
-        {"$set": {"lead_id": None, "manager_id": None}}
+        {"$set": deassign_dict}
     )
     if result.matched_count == 0:
         return None

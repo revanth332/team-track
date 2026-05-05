@@ -54,6 +54,12 @@ async def login(credentials: LoginRequest):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
         )
+    
+    if not user.get("lead_id") and not user.get("manager_id"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is not assigned to a lead or manager. Please contact your administrator."
+        )
     return create_token_response(user)
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
