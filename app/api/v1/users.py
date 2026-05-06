@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
 from typing import List
 from app.api.dependencies import get_current_user
 from app.schemas.user import (
     UserAssign,
     UserCreate,
     UserDeAssign,
+    PaginatedUsersResponse,
     UserPositionAssign,
     UserUpdate,
     UserResponse,
@@ -64,14 +65,16 @@ async def list_team_members(
         return []
     return await user_service.get_all_users(lead_id=current_lead_id)
 
-@router.get("/all", response_model=List[UserResponse])
-async def list_team_members(
+@router.get("/all", response_model=PaginatedUsersResponse)
+async def list_all_team_members(
     position: str = None,
     name: str = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ):
     """
-    Fetch all team members for the directory.
+    Fetch all team members for the directory with pagination.
     """
     position_from_token = (current_user.get("position") or "").lower()
 
@@ -80,7 +83,12 @@ async def list_team_members(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only superadmin can access the full user list."
         )
-    return await user_service.get_all_users(position,name)
+    return await user_service.get_paginated_users(
+        position=position,
+        name=name,
+        page=page,
+        limit=limit,
+    )
 
 @router.post("/assign", response_model=UserResponse)
 async def assign_user(

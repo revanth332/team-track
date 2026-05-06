@@ -10,6 +10,7 @@ from app.schemas.user import (
     UserUpdate,
 )
 from datetime import datetime
+from math import ceil
 
 # Helper function to map MongoDB document to our Pydantic Response
 def user_helper(user) -> dict:
@@ -66,26 +67,78 @@ async def register_user(user_data: UserRegister):
     )
     return await create_user(full_user_data)
 
-async def get_all_users(lead_id: str = None, manager_id: str = None, position: str = None,name: str = None):
-    db = get_database()
-    query = {}
+def build_users_query(lead_id: str = None, manager_id: str = None, position: str = None, name: str = None):
+    query = {"position": {"$ne": "superadmin"}}
     if lead_id:
         query["lead_id"] = lead_id
     if manager_id:
         query["manager_id"] = manager_id
     if position:
-        query["position"] = position
+        normalized_position = position.strip().lower()
+        if normalized_position == "superadmin":
+            return None
+        query["position"] = normalized_position
     if name:
         query["$or"] =[
             # "$options": "i" makes the search case-insensitive
             {"name": {"$regex": name, "$options": "i"}},
             {"username": {"$regex": name, "$options": "i"}}
         ]
+    return query
 
+async def get_all_users(lead_id: str = None, manager_id: str = None, position: str = None,name: str = None):
+    db = get_database()
+    query = build_users_query(
+        lead_id=lead_id,
+        manager_id=manager_id,
+        position=position,
+        name=name,
+    )
+    if query is None:
+        return []
     users =[]
     async for user in db.users.find(query):
         users.append(user_helper(user))
     return users
+
+async def get_paginated_users(
+    lead_id: str = None,
+    manager_id: str = None,
+    position: str = None,
+    name: str = None,
+    page: int = 1,
+    limit: int = 10,
+):
+    db = get_database()
+    query = build_users_query(
+        lead_id=lead_id,
+        manager_id=manager_id,
+        position=position,
+        name=name,
+    )
+    if query is None:
+        return {
+            "users": [],
+            "total": 0,
+            "page": page,
+            "limit": limit,
+            "total_pages": 0,
+        }
+
+    skip = (page - 1) * limit
+    total = await db.users.count_documents(query)
+    users = []
+    cursor = db.users.find(query).sort("name", 1).skip(skip).limit(limit)
+    async for user in cursor:
+        users.append(user_helper(user))
+
+    return {
+        "users": users,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": ceil(total / limit) if total else 0,
+    }
 
 async def get_user_by_id(user_id: str):
     db = get_database()
@@ -132,6 +185,14 @@ async def assign_user_position(user_data: UserPositionAssign):
 
     updated_user = await db.users.find_one({"username": user_data.username})
     return user_helper(updated_user)
+
+async def update_user_password(username: str, new_password: str):
+    db = get_database()
+    result = await db.users.update_one(
+        {"username": username},
+        {"$set": {"password_hash": hash_password(new_password)}}
+    )
+    return result.matched_count == 1
 
 async def deassign_user(user_data: UserDeAssign, is_deassigning_lead: bool, is_deassigning_manager: bool):
     db = get_database()

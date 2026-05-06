@@ -82,3 +82,10 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     id: str 
     model_config = ConfigDict(populate_by_name=True)
+
+class PaginatedUsersResponse(BaseModel):
+    users: List[UserResponse]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
