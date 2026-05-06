@@ -75,10 +75,10 @@ async def list_team_members(
     """
     position_from_token = (current_user.get("position") or "").lower()
 
-    if position_from_token != "manager":
+    if position_from_token != "superadmin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only managers can access the full user list."
+            detail="Only superadmin can access the full user list."
         )
     return await user_service.get_all_users(position,name)
 
@@ -129,13 +129,13 @@ async def assign_user_position(
     current_user: dict = Depends(get_current_user),
 ):
     """
-    Assign a position to a user. Only managers can assign positions.
+    Assign a position to a user. Only Superadmin can assign positions.
     """
     current_position = (current_user.get("position") or "").lower()
-    if current_position != "manager":
+    if current_position != "superadmin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only managers can assign positions."
+            detail="Only superadmin can assign positions."
         )
 
     normalized_assignment = assignment.model_copy(

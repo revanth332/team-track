@@ -55,7 +55,7 @@ async def login(credentials: LoginRequest):
             detail="Invalid credentials"
         )
     
-    if not user.get("lead_id") and not user.get("manager_id") and user.get("position") not in {"lead", "manager"}:
+    if not user.get("lead_id") and not user.get("manager_id") and user.get("position") not in {"lead", "manager","superadmin"}:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account is not assigned to a lead or manager. Please contact your administrator."
