@@ -33,7 +33,6 @@ async def create_task(
 async def list_tasks(
     username: Optional[str] = Query(None, description="Filter tasks by creator username"),
     lead_id: Optional[str] = Query(None, description="Filter tasks by lead username"),
-    manager_id: Optional[str] = Query(None, description="Filter tasks by manager username"),
     status: Optional[str] = Query(None, description="Filter tasks by status"),
     tag: Optional[str] = Query(None, description="Filter tasks by tag"),
     page: int = Query(1, ge=1, description="Page number"),
@@ -44,12 +43,12 @@ async def list_tasks(
     Fetch tasks scoped by the current user's team hierarchy.
     """
     position = (current_user.get("position") or "").lower()
+    manager_id = None
     if position == "manager":
         lead_id = lead_id.strip().lower() if lead_id else None
-        manager_id = manager_id.strip().lower() if manager_id else None
+        manager_id = current_user.get("username") or None
     else:
-        lead_id = current_user.get("lead_id")
-        manager_id = None
+        lead_id = current_user.get("username") if position == "lead" else current_user.get("lead_id")
         if not lead_id:
             return {
                 "status": "success",

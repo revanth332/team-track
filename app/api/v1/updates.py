@@ -22,19 +22,18 @@ async def list_weekly_updates(
     week_end_date: Optional[date] = Query(None, description="Filter by the Monday of the week (YYYY-MM-DD)"),
     name: Optional[str] = Query(None, description="Filter updates by team member's name"),
     lead_id: Optional[str] = Query(None, description="Filter updates by lead username"),
-    manager_id: Optional[str] = Query(None, description="Filter updates by manager username"),
     current_user: dict = Depends(get_current_user),
 ):
     """
     Fetch all updates, optionally filtered by a specific week.
     """
     position = (current_user.get("position") or "").lower()
+    manager_id = None
     if position == "manager":
         lead_id = lead_id.strip().lower() if lead_id else None
-        manager_id = manager_id.strip().lower() if manager_id else None
+        manager_id = current_user.get("username") or None
     else:
-        lead_id = current_user.get("lead_id")
-        manager_id = None
+        lead_id = current_user.get("username") if position == "lead" else current_user.get("lead_id")
         if not lead_id:
             return []
     return await update_service.get_weekly_updates(

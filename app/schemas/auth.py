@@ -4,8 +4,7 @@ from pydantic import BaseModel, Field
 
 class LoginRequest(BaseModel):
     username: str
-    password: Optional[str] = None
-    passkey: Optional[str] = None
+    password: str
 
 class TokenResponse(BaseModel):
     access_token: str

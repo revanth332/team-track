@@ -48,7 +48,7 @@ class UserRegister(BaseModel):
 
 
 class UserAssign(BaseModel):
-    username: str = Field(..., min_length=3, example="employee_username")
+    usernames: List[str] = Field(..., min_length=1, example=["employee_username"])
     lead_id: Optional[str] = Field(default=None, example="lead_username")
     manager_id: Optional[str] = Field(default=None, example="manager_username")
 
@@ -82,6 +82,10 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     id: str 
     model_config = ConfigDict(populate_by_name=True)
+
+class UserSummaryResponse(BaseModel):
+    name: str
+    username: str
 
 class PaginatedUsersResponse(BaseModel):
     users: List[UserResponse]

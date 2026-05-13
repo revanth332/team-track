@@ -17,7 +17,6 @@ async def add_new_goal(
 @router.get("/", response_model=List[GoalResponse])
 async def list_all_goals(
     lead_id: str=Query(None),
-    manager_id: str=Query(None),
     username: str = Query(None, description="Filter goals by submitter's username"),
     year: int = Query(None, description="Filter goals by year"),
     quarter: str = Query(None, description="Filter goals by quarter (e.g. Q1, Q2)"),
@@ -26,11 +25,12 @@ async def list_all_goals(
 ):
     """ Fetch all Quarterly Goals """
     position = (current_user.get("position") or "").lower()
+    manager_id = None
     if position == "manager":
         lead_id = lead_id.strip().lower() if lead_id else None
-        manager_id = manager_id.strip().lower() if manager_id else None
+        manager_id = current_user.get("username") or None
     else:
-        lead_id = current_user.get("lead_id")
+        lead_id = current_user.get("username") if position == "lead" else current_user.get("lead_id")
         manager_id = None
         if not lead_id:
             return []

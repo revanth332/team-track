@@ -42,7 +42,7 @@ def create_token_response(user: dict) -> dict:
 @router.post("/login", response_model=TokenResponse)
 async def login(credentials: LoginRequest):
     username = credentials.username.strip().lower()
-    password = credentials.password or credentials.passkey
+    password = credentials.password
 
     if not password:
         raise HTTPException(

@@ -19,7 +19,6 @@ async def add_new_idea(
 async def list_all_ideas(
     username: str = Query(None, description="Filter ideas by submitter's username"),
     lead_id: str = Query(None, description="Filter ideas by lead username"),
-    manager_id: str = Query(None, description="Filter ideas by manager username"),
     title: str = Query(None, description="Filter ideas by title keyword"),
     status: str = Query(None, description="Filter ideas by status (Pending, Approved, Rejected)"),
     tag: str = Query(None, description="Filter ideas by tag"),
@@ -33,9 +32,9 @@ async def list_all_ideas(
     position = (current_user.get("position") or "").lower()
     if position == "manager":
         lead_id = lead_id.strip().lower() if lead_id else None
-        manager_id = manager_id.strip().lower() if manager_id else None
+        manager_id = current_user.get("username") or None
     else:
-        lead_id = current_user.get("lead_id")
+        lead_id = current_user.get("username") if position == "lead" else current_user.get("lead_id")
         manager_id = None
         if not lead_id:
             return {

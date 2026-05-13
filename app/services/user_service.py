@@ -36,6 +36,12 @@ def user_helper(user) -> dict:
         "bandwidth": user.get("bandwidth", {"percentage": 100, "hours": 0})
     }
 
+def user_summary_helper(user) -> dict:
+    return {
+        "name": user.get("name"),
+        "username": user.get("username"),
+    }
+
 async def create_user(user_data: UserCreate):
     db = get_database()
     user_dict = user_data.model_dump()
@@ -101,6 +107,20 @@ async def get_all_users(lead_id: str = None, manager_id: str = None, position: s
         users.append(user_helper(user))
     return users
 
+async def get_unassigned_employees():
+    db = get_database()
+    query = {
+        "position": "employee",
+        "$and": [
+            {"$or": [{"lead_id": {"$exists": False}}, {"lead_id": None}, {"lead_id": ""}]},
+            {"$or": [{"manager_id": {"$exists": False}}, {"manager_id": None}, {"manager_id": ""}]},
+        ],
+    }
+    users = []
+    async for user in db.users.find(query).sort("name", 1):
+        users.append(user_summary_helper(user))
+    return users
+
 async def get_paginated_users(
     lead_id: str = None,
     manager_id: str = None,
@@ -158,21 +178,30 @@ async def get_user_document_by_username(username: str):
     db = get_database()
     return await db.users.find_one({"username": username})
 
+async def get_user_documents_by_usernames(usernames: list[str]):
+    db = get_database()
+    users = []
+    async for user in db.users.find({"username": {"$in": usernames}}):
+        users.append(user)
+    return users
+
 async def assign_user(user_data: UserAssign):
     db = get_database()
     update_data = {
         "lead_id": user_data.lead_id,
         "manager_id": user_data.manager_id,
     }
-    result = await db.users.update_one(
-        {"username": user_data.username},
+    result = await db.users.update_many(
+        {"username": {"$in": user_data.usernames}},
         {"$set": update_data}
     )
     if result.matched_count == 0:
-        return None
+        return []
 
-    updated_user = await db.users.find_one({"username": user_data.username})
-    return user_helper(updated_user)
+    updated_users = []
+    async for user in db.users.find({"username": {"$in": user_data.usernames}}):
+        updated_users.append(user_helper(user))
+    return updated_users
 
 async def assign_user_position(user_data: UserPositionAssign):
     db = get_database()
