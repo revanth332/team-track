@@ -30,12 +30,12 @@ async def list_all_ideas(
     Fetch all ideas.
     """
     position = (current_user.get("position") or "").lower()
+    manager_id = None
     if position == "manager":
         lead_id = lead_id.strip().lower() if lead_id else None
         manager_id = current_user.get("username") or None
     else:
         lead_id = current_user.get("username") if position == "lead" else current_user.get("lead_id")
-        manager_id = None
         if not lead_id:
             return {
                 "status": "success",

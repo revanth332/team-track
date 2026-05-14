@@ -31,7 +31,6 @@ async def list_all_goals(
         manager_id = current_user.get("username") or None
     else:
         lead_id = current_user.get("username") if position == "lead" else current_user.get("lead_id")
-        manager_id = None
         if not lead_id:
             return []
     return await goal_service.get_all_goals(username, year, quarter, type, lead_id, manager_id)

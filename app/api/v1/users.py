@@ -59,6 +59,7 @@ async def list_team_members(
         return await user_service.get_all_users(
             lead_id=normalized_lead_id,
             manager_id=normalized_manager_id,
+            position="lead"
         )
 
     current_lead_id = current_user.get("lead_id")
@@ -82,18 +83,18 @@ async def list_leads(current_user: dict = Depends(get_current_user)):
     return await user_service.get_all_users(manager_id=manager_id, position="lead")
 
 @router.get("/unassigned", response_model=List[UserSummaryResponse])
-async def list_unassigned_employees(current_user: dict = Depends(get_current_user)):
+async def list_unassigned_employees(position: str = None, current_user: dict = Depends(get_current_user)):
     """
     Fetch unassigned employees.
     """
-    position = (current_user.get("position") or "").lower()
-    if position not in {"manager", "lead"}:
+    user_position = (current_user.get("position") or "").lower()
+    if user_position not in {"manager", "lead"}:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only managers and leads can access unassigned employees."
         )
 
-    return await user_service.get_unassigned_employees()
+    return await user_service.get_unassigned_employees(position=position)
 
 @router.get("/all", response_model=PaginatedUsersResponse)
 async def list_all_team_members(

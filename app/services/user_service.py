@@ -107,10 +107,10 @@ async def get_all_users(lead_id: str = None, manager_id: str = None, position: s
         users.append(user_helper(user))
     return users
 
-async def get_unassigned_employees():
+async def get_unassigned_employees(position: str = None):
     db = get_database()
     query = {
-        "position": "employee",
+        "position": position if position else "employee",
         "$and": [
             {"$or": [{"lead_id": {"$exists": False}}, {"lead_id": None}, {"lead_id": ""}]},
             {"$or": [{"manager_id": {"$exists": False}}, {"manager_id": None}, {"manager_id": ""}]},
