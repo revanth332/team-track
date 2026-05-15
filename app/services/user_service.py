@@ -42,6 +42,7 @@ def normalize_active_projects(active_projects) -> list:
             or not isinstance(description, str)
             or not isinstance(is_active, bool)
             or not isinstance(occupancy, int)
+            or isinstance(occupancy, bool)
         ):
             continue
 
@@ -54,8 +55,14 @@ def normalize_active_projects(active_projects) -> list:
 
     return normalized_projects
 
+def calculate_bandwidth(active_projects) -> int:
+    normalized_projects = normalize_active_projects(active_projects)
+    total_occupancy = sum(project["occupancy"] for project in normalized_projects)
+    return max(0, min(100, 100 - total_occupancy))
+
 # Helper function to map MongoDB document to our Pydantic Response
 def user_helper(user) -> dict:
+    active_projects = normalize_active_projects(user.get("active_projects"))
     return {
         "id": str(user["_id"]),
         "name": user.get("name"),
@@ -67,7 +74,7 @@ def user_helper(user) -> dict:
         "lead_id": user.get("lead_id"),
         "manager_id": user.get("manager_id"),
         "position": user.get("position"),
-        "active_projects": normalize_active_projects(user.get("active_projects")),
+        "active_projects": active_projects,
         
         # Pull the time strings from DB (Pydantic will auto-convert them back to time objects for the API response)
         "shift_start": user.get("shift_start"),
@@ -75,7 +82,7 @@ def user_helper(user) -> dict:
         
         "skills": user.get("skills",[]),
         "birthday": user.get("birthday"),
-        "bandwidth": user.get("bandwidth", {"percentage": 100, "hours": 0})
+        "bandwidth": calculate_bandwidth(active_projects)
     }
 
 def user_summary_helper(user) -> dict:
@@ -85,11 +92,10 @@ def user_summary_helper(user) -> dict:
     }
 
 def user_bandwidth_helper(user) -> dict:
-    bandwidth = user.get("bandwidth") or {}
     return {
         "name": user.get("name"),
         "username": user.get("username"),
-        "bandwidth": bandwidth.get("percentage", 100),
+        "bandwidth": calculate_bandwidth(user.get("active_projects")),
     }
 
 async def create_user(user_data: UserCreate):
@@ -98,6 +104,8 @@ async def create_user(user_data: UserCreate):
     if user_data.password:
         user_dict["password_hash"] = hash_password(user_data.password)
     user_dict.pop("password", None)
+    user_dict["active_projects"] = normalize_active_projects(user_dict.get("active_projects"))
+    user_dict["bandwidth"] = calculate_bandwidth(user_dict["active_projects"])
     
     # 1. Convert birthday to datetime (BSON requirement)
     if user_dict.get("birthday"):
@@ -321,6 +329,10 @@ async def update_user(user_id: str, data: UserUpdate):
         
     if "shift_end" in update_data and update_data["shift_end"]:
         update_data["shift_end"] = update_data["shift_end"].isoformat()
+
+    if "active_projects" in update_data:
+        update_data["active_projects"] = normalize_active_projects(update_data["active_projects"])
+        update_data["bandwidth"] = calculate_bandwidth(update_data["active_projects"])
 
     if len(update_data) >= 1:
         updated_result = await db.users.update_one(

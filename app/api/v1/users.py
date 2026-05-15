@@ -62,8 +62,10 @@ async def list_team_members(
             manager_id=normalized_manager_id,
             position="lead"
         )
-
-    current_lead_id = current_user.get("lead_id")
+    if position == "lead":
+        current_lead_id = current_user.get("username")
+    else:
+        current_lead_id = current_user.get("lead_id")
     if not current_lead_id:
         return []
     return await user_service.get_all_users(lead_id=current_lead_id)
@@ -100,14 +102,15 @@ async def list_users_bandwidth(
             lead_id=normalized_lead_id,
             manager_id=username,
         )
-
+    
     if position == "lead":
-        return await user_service.get_users_bandwidth(lead_id=username)
+        current_lead_id = current_user.get("username")
+    else:
+        current_lead_id = current_user.get("lead_id")
+    if not current_lead_id:
+        return []
+    return await user_service.get_users_bandwidth(lead_id=current_lead_id)
 
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Only managers and leads can access user bandwidth.",
-    )
 
 @router.get("/unassigned", response_model=List[UserSummaryResponse])
 async def list_unassigned_employees(position: str = None, current_user: dict = Depends(get_current_user)):

@@ -2,15 +2,11 @@ from pydantic import AliasChoices, BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import date, time
 
-class BandWidth(BaseModel):
-    percentage: int = Field(..., example=75)
-    hours: float = Field(..., example=2)
-
 class ActiveProject(BaseModel):
     title: str = Field(..., example="Project Alpha")
     description: str = Field(..., example="Internal team tracking dashboard")
     is_active: bool = Field(..., example=True)
-    occupancy: int = Field(..., example=50)
+    occupancy: int = Field(..., ge=0, le=100, strict=True, example=50)
 
 # Base model containing the common fields
 class UserBase(BaseModel):
@@ -34,11 +30,6 @@ class UserBase(BaseModel):
             }
         ],
     )
-    bandwidth: BandWidth = Field(
-        default_factory=lambda: BandWidth(percentage=100, hours=0),
-        example={"percentage": 75, "hours": 2},
-    )
-    
     # Replaced shift string with start and end times
     shift_start: time = Field(default=time(9, 0), example="16:00:00") # 4:00 PM
     shift_end: time = Field(default=time(1, 0), example="01:00:00")   # 1:00 AM
@@ -92,11 +83,11 @@ class UserUpdate(BaseModel):
     shift_end: Optional[time] = None
     skills: Optional[List[str]] = None
     birthday: Optional[date] = None
-    bandwidth: Optional[BandWidth] = None
 
 # Schema for sending data back to frontend (Response)
 class UserResponse(UserBase):
     id: str 
+    bandwidth: int = Field(default=100, ge=0, le=100, strict=True, example=75)
     model_config = ConfigDict(populate_by_name=True)
 
 class UserSummaryResponse(BaseModel):
@@ -106,7 +97,7 @@ class UserSummaryResponse(BaseModel):
 class UserBandwidthResponse(BaseModel):
     name: str
     username: str
-    bandwidth: int
+    bandwidth: int = Field(..., ge=0, le=100, strict=True, example=75)
 
 class PaginatedUsersResponse(BaseModel):
     users: List[UserResponse]
