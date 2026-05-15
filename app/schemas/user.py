@@ -6,6 +6,12 @@ class BandWidth(BaseModel):
     percentage: int = Field(..., example=75)
     hours: float = Field(..., example=2)
 
+class ActiveProject(BaseModel):
+    title: str = Field(..., example="Project Alpha")
+    description: str = Field(..., example="Internal team tracking dashboard")
+    is_active: bool = Field(..., example=True)
+    occupancy: int = Field(..., example=50)
+
 # Base model containing the common fields
 class UserBase(BaseModel):
     name: str = Field(..., example="Jane Doe")
@@ -17,7 +23,17 @@ class UserBase(BaseModel):
     lead_id: Optional[str] = Field(default=None, example="lead_username")
     manager_id: Optional[str] = Field(default=None, example="manager_username")
     position: Optional[str] = Field(default=None, example="employee")
-    active_projects: List[str] = Field(default_factory=list, example=["Project Alpha", "Core App"])
+    active_projects: List[ActiveProject] = Field(
+        default_factory=list,
+        example=[
+            {
+                "title": "Project Alpha",
+                "description": "Internal team tracking dashboard",
+                "is_active": True,
+                "occupancy": 50,
+            }
+        ],
+    )
     bandwidth: BandWidth = Field(
         default_factory=lambda: BandWidth(percentage=100, hours=0),
         example={"percentage": 75, "hours": 2},
@@ -71,7 +87,7 @@ class UserUpdate(BaseModel):
     lead_id: Optional[str] = None
     manager_id: Optional[str] = None
     position: Optional[str] = None
-    active_projects: Optional[List[str]] = None
+    active_projects: Optional[List[ActiveProject]] = None
     shift_start: Optional[time] = None
     shift_end: Optional[time] = None
     skills: Optional[List[str]] = None

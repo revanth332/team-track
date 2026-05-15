@@ -12,6 +12,48 @@ from app.schemas.user import (
 from datetime import datetime
 from math import ceil
 
+def normalize_active_projects(active_projects) -> list:
+    if not isinstance(active_projects, list):
+        return []
+
+    normalized_projects = []
+    for project in active_projects:
+        if isinstance(project, str):
+            title = project.strip()
+            if title:
+                normalized_projects.append({
+                    "title": title,
+                    "description": "",
+                    "is_active": True,
+                    "occupancy": 0,
+                })
+            continue
+
+        if not isinstance(project, dict):
+            continue
+
+        title = project.get("title")
+        description = project.get("description")
+        is_active = project.get("is_active")
+        occupancy = project.get("occupancy")
+
+        if (
+            not isinstance(title, str)
+            or not isinstance(description, str)
+            or not isinstance(is_active, bool)
+            or not isinstance(occupancy, int)
+        ):
+            continue
+
+        normalized_projects.append({
+            "title": title,
+            "description": description,
+            "is_active": is_active,
+            "occupancy": occupancy,
+        })
+
+    return normalized_projects
+
 # Helper function to map MongoDB document to our Pydantic Response
 def user_helper(user) -> dict:
     return {
@@ -25,7 +67,7 @@ def user_helper(user) -> dict:
         "lead_id": user.get("lead_id"),
         "manager_id": user.get("manager_id"),
         "position": user.get("position"),
-        "active_projects": user.get("active_projects",[]),
+        "active_projects": normalize_active_projects(user.get("active_projects")),
         
         # Pull the time strings from DB (Pydantic will auto-convert them back to time objects for the API response)
         "shift_start": user.get("shift_start"),
