@@ -42,6 +42,14 @@ def user_summary_helper(user) -> dict:
         "username": user.get("username"),
     }
 
+def user_bandwidth_helper(user) -> dict:
+    bandwidth = user.get("bandwidth") or {}
+    return {
+        "name": user.get("name"),
+        "username": user.get("username"),
+        "bandwidth": bandwidth.get("percentage", 100),
+    }
+
 async def create_user(user_data: UserCreate):
     db = get_database()
     user_dict = user_data.model_dump()
@@ -105,6 +113,17 @@ async def get_all_users(lead_id: str = None, manager_id: str = None, position: s
     users =[]
     async for user in db.users.find(query):
         users.append(user_helper(user))
+    return users
+
+async def get_users_bandwidth(lead_id: str = None, manager_id: str = None):
+    db = get_database()
+    query = build_users_query(lead_id=lead_id, manager_id=manager_id)
+    if query is None:
+        return []
+
+    users = []
+    async for user in db.users.find(query).sort("name", 1):
+        users.append(user_bandwidth_helper(user))
     return users
 
 async def get_unassigned_employees(position: str = None):

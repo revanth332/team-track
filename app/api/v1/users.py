@@ -6,6 +6,7 @@ from app.schemas.user import (
     UserCreate,
     UserDeAssign,
     PaginatedUsersResponse,
+    UserBandwidthResponse,
     UserPositionAssign,
     UserSummaryResponse,
     UserUpdate,
@@ -81,6 +82,32 @@ async def list_leads(current_user: dict = Depends(get_current_user)):
 
     manager_id = current_user.get("username")
     return await user_service.get_all_users(manager_id=manager_id, position="lead")
+
+@router.get("/bandwidth", response_model=List[UserBandwidthResponse])
+async def list_users_bandwidth(
+    lead_id: str = Query(None),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Fetch users with their bandwidth percentage for the current manager or lead.
+    """
+    position = (current_user.get("position") or "").lower()
+    username = (current_user.get("username") or "").strip().lower()
+
+    if position == "manager":
+        normalized_lead_id = lead_id.strip().lower() if lead_id else None
+        return await user_service.get_users_bandwidth(
+            lead_id=normalized_lead_id,
+            manager_id=username,
+        )
+
+    if position == "lead":
+        return await user_service.get_users_bandwidth(lead_id=username)
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Only managers and leads can access user bandwidth.",
+    )
 
 @router.get("/unassigned", response_model=List[UserSummaryResponse])
 async def list_unassigned_employees(position: str = None, current_user: dict = Depends(get_current_user)):

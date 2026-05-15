@@ -87,6 +87,11 @@ class UserSummaryResponse(BaseModel):
     name: str
     username: str
 
+class UserBandwidthResponse(BaseModel):
+    name: str
+    username: str
+    bandwidth: int
+
 class PaginatedUsersResponse(BaseModel):
     users: List[UserResponse]
     total: int
