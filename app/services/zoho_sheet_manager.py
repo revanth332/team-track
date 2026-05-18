@@ -44,7 +44,7 @@ class ZohoSheetManager:
 
     def _base_payload(self, method: str) -> Dict[str, Any]:
         if not self.worksheet_name:
-            raise HTTPException(status_code=500, detail="SHEET_NAME is not configured")
+            raise HTTPException(status_code=500, detail="Zoho worksheet name is not configured")
         return {
             "method": method,
             "worksheet_name": self.worksheet_name,

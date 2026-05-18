@@ -60,6 +60,12 @@ def calculate_bandwidth(active_projects) -> int:
     total_occupancy = sum(project["occupancy"] for project in normalized_projects)
     return max(0, min(100, 100 - total_occupancy))
 
+def normalize_optional_text(value):
+    if not isinstance(value, str):
+        return value
+    value = value.strip()
+    return value or None
+
 # Helper function to map MongoDB document to our Pydantic Response
 def user_helper(user) -> dict:
     active_projects = normalize_active_projects(user.get("active_projects"))
@@ -116,6 +122,8 @@ async def create_user(user_data: UserCreate):
         user_dict["shift_start"] = user_dict["shift_start"].isoformat()
     if user_dict.get("shift_end"):
         user_dict["shift_end"] = user_dict["shift_end"].isoformat()
+    if "shift_sheet_name" in user_dict:
+        user_dict["shift_sheet_name"] = normalize_optional_text(user_dict.get("shift_sheet_name"))
 
     new_user = await db.users.insert_one(user_dict)
     created_user = await db.users.find_one({"_id": new_user.inserted_id})
@@ -333,6 +341,8 @@ async def update_user(user_id: str, data: UserUpdate):
     if "active_projects" in update_data:
         update_data["active_projects"] = normalize_active_projects(update_data["active_projects"])
         update_data["bandwidth"] = calculate_bandwidth(update_data["active_projects"])
+    if "shift_sheet_name" in update_data:
+        update_data["shift_sheet_name"] = normalize_optional_text(update_data.get("shift_sheet_name"))
 
     if len(update_data) >= 1:
         updated_result = await db.users.update_one(

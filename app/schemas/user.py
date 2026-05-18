@@ -40,6 +40,7 @@ class UserBase(BaseModel):
 # Schema for creating a user (POST)
 class UserCreate(UserBase):
     password: Optional[str] = Field(default=None, min_length=8, exclude=True)
+    shift_sheet_name: Optional[str] = Field(default=None, example="Team Lead Sheet")
 
 
 class UserRegister(BaseModel):
@@ -83,6 +84,7 @@ class UserUpdate(BaseModel):
     shift_end: Optional[time] = None
     skills: Optional[List[str]] = None
     birthday: Optional[date] = None
+    shift_sheet_name: Optional[str] = None
 
 # Schema for sending data back to frontend (Response)
 class UserResponse(UserBase):

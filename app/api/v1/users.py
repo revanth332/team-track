@@ -151,6 +151,28 @@ async def list_all_team_members(
         limit=limit,
     )
 
+@router.get("/detail", response_model=UserResponse)
+async def get_user_detail_by_username(
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Fetch a single user's details by username.
+    """
+    normalized_username = current_user.get("username")
+    if not normalized_username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username is required."
+        )
+
+    user = await user_service.get_user_by_username(normalized_username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return user
+
 @router.post("/assign", response_model=List[UserResponse])
 async def assign_user(
     assignment: UserAssign = Body(...),

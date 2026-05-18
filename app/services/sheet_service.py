@@ -1,13 +1,12 @@
 from datetime import datetime
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
+from app.core.database import get_database
 from app.schemas.sheet import CreateSheetRequest, GetSheetRequest, UpdateSheetRequest
 from app.services.shift_service import shift_helper
 from app.services.zoho_sheet_manager import ZohoSheetManager
 
-
-sheet_manager = ZohoSheetManager()
 
 field_mapping = {
     "name": "Employee Name",
@@ -22,6 +21,88 @@ field_mapping = {
     "manager_remarks": "Manager Comments if any",
     "lead_hr_comments": "Lead/HR\ncomments",
 }
+
+
+_user_indexes_ensured = False
+
+
+async def _ensure_user_sheet_indexes(db):
+    global _user_indexes_ensured
+    if _user_indexes_ensured:
+        return
+
+    await db.users.create_index("username")
+    await db.users.create_index([("username", 1), ("manager_id", 1), ("position", 1)])
+    _user_indexes_ensured = True
+
+
+async def resolve_lead_sheet_name(current_user: dict, lead_id: str = None) -> str:
+    db = get_database()
+    await _ensure_user_sheet_indexes(db)
+    position = (current_user.get("position") or "").strip().lower()
+    username = (current_user.get("username") or "").strip().lower()
+    normalized_lead_id = lead_id.strip().lower() if lead_id else None
+
+    if position == "lead":
+        resolved_lead_id = username
+    elif position == "employee":
+        resolved_lead_id = (current_user.get("lead_id") or "").strip().lower()
+    elif position == "manager":
+        if not normalized_lead_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="lead_id query parameter is required for managers.",
+            )
+        resolved_lead_id = normalized_lead_id
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only employees, leads, and managers can access shift sheets.",
+        )
+
+    if not resolved_lead_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current user is not assigned to a lead.",
+        )
+
+    lead = await db.users.find_one(
+        {"username": resolved_lead_id},
+        {"username": 1, "position": 1, "manager_id": 1, "shift_sheet_name": 1},
+    )
+    if not lead:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Lead '{resolved_lead_id}' was not found.",
+        )
+
+    if (lead.get("position") or "").lower() != "lead":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User '{resolved_lead_id}' is not configured as a lead.",
+        )
+
+    if position == "manager" and lead.get("manager_id") != username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Lead '{resolved_lead_id}' is not assigned to this manager.",
+        )
+
+    sheet_name = lead.get("shift_sheet_name")
+    if isinstance(sheet_name, str):
+        sheet_name = sheet_name.strip()
+    if not sheet_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Shift sheet name is not configured for lead '{resolved_lead_id}'.",
+        )
+
+    return sheet_name
+
+
+async def _sheet_manager_for_user(current_user: dict, lead_id: str = None) -> ZohoSheetManager:
+    sheet_name = await resolve_lead_sheet_name(current_user, lead_id)
+    return ZohoSheetManager(worksheet_name=sheet_name)
 
 
 def _shift_record_from_request(request: CreateSheetRequest) -> dict:
@@ -69,7 +150,8 @@ def _next_row_id(rows: list) -> int:
     return last_row_id + 1
 
 
-async def add_row_zoho_sheet(request: CreateSheetRequest):
+async def add_row_zoho_sheet(request: CreateSheetRequest, current_user: dict, lead_id: str = None):
+    sheet_manager = await _sheet_manager_for_user(current_user, lead_id)
     shift_record = _shift_record_from_request(request)
     name = shift_record.get("Employee Name")
     date = shift_record.get("Date")
@@ -87,10 +169,11 @@ async def add_row_zoho_sheet(request: CreateSheetRequest):
     return {"status": "success", "info": sheet_manager.add_records([shift_record], header_row=1)}
 
 
-async def get_zoho_sheet_data(request: GetSheetRequest):
+async def get_zoho_sheet_data(request: GetSheetRequest, current_user: dict, lead_id: str = None):
     """
     Fetch records from Zoho Sheet and return normalized shift objects.
     """
+    sheet_manager = await _sheet_manager_for_user(current_user, lead_id)
     records = sheet_manager.fetch_records(
         header_row=request.header_row,
         criteria=_build_fetch_criteria(request),
@@ -111,10 +194,17 @@ async def get_zoho_sheet_data(request: GetSheetRequest):
     }
 
 
-async def update_row_zoho_sheet(request: UpdateSheetRequest, name: str, date: str):
+async def update_row_zoho_sheet(
+    request: UpdateSheetRequest,
+    name: str,
+    date: str,
+    current_user: dict,
+    lead_id: str = None,
+):
     """
     Update the first matching shift record for an employee and date.
     """
+    sheet_manager = await _sheet_manager_for_user(current_user, lead_id)
     shift_record = _shift_record_from_request(request)
     return sheet_manager.update_records(
         shift_record,
@@ -124,10 +214,17 @@ async def update_row_zoho_sheet(request: UpdateSheetRequest, name: str, date: st
     )
 
 
-async def delete_row_zoho_sheet(name: str, date: str, is_admin: bool):
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Only admins can delete records")
+async def delete_row_zoho_sheet(
+    name: str,
+    date: str,
+    current_user: dict,
+    lead_id: str = None,
+):
+    position = (current_user.get("position") or "").lower()
+    if position not in {"lead", "manager"}:
+        raise HTTPException(status_code=403, detail="Only leads and managers can delete shift records")
 
+    sheet_manager = await _sheet_manager_for_user(current_user, lead_id)
     return sheet_manager.delete_records(
         criteria=_record_identity_criteria(name, date),
         delete_rows=True,
