@@ -5,6 +5,7 @@ from app.schemas.user import (
     UserAssign,
     UserCreate,
     UserDeAssign,
+    UserDetailResponse,
     PaginatedUsersResponse,
     UserBandwidthResponse,
     UserPositionAssign,
@@ -59,8 +60,7 @@ async def list_team_members(
             normalized_manager_id = current_user.get("username")
         return await user_service.get_all_users(
             lead_id=normalized_lead_id,
-            manager_id=normalized_manager_id,
-            position="lead"
+            manager_id=normalized_manager_id
         )
     if position == "lead":
         current_lead_id = current_user.get("username")
@@ -151,7 +151,7 @@ async def list_all_team_members(
         limit=limit,
     )
 
-@router.get("/detail", response_model=UserResponse)
+@router.get("/detail", response_model=UserDetailResponse, response_model_exclude_none=True)
 async def get_user_detail_by_username(
     current_user: dict = Depends(get_current_user),
 ):
@@ -165,7 +165,7 @@ async def get_user_detail_by_username(
             detail="Username is required."
         )
 
-    user = await user_service.get_user_by_username(normalized_username)
+    user = await user_service.get_user_detail_by_username(normalized_username)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

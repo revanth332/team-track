@@ -92,6 +92,9 @@ class UserResponse(UserBase):
     bandwidth: int = Field(default=100, ge=0, le=100, strict=True, example=75)
     model_config = ConfigDict(populate_by_name=True)
 
+class UserDetailResponse(UserResponse):
+    shift_sheet_name: Optional[str] = Field(default=None, example="Team Lead Sheet")
+
 class UserSummaryResponse(BaseModel):
     name: str
     username: str

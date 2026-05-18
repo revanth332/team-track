@@ -91,6 +91,12 @@ def user_helper(user) -> dict:
         "bandwidth": calculate_bandwidth(active_projects)
     }
 
+def user_detail_helper(user) -> dict:
+    user_data = user_helper(user)
+    if (user.get("position") or "").lower() == "lead":
+        user_data["shift_sheet_name"] = user.get("shift_sheet_name")
+    return user_data
+
 def user_summary_helper(user) -> dict:
     return {
         "name": user.get("name"),
@@ -249,6 +255,13 @@ async def get_user_by_username(username:str):
     user = await db.users.find_one({"username":username})
     if user:
         return user_helper(user)
+    return None
+
+async def get_user_detail_by_username(username: str):
+    db = get_database()
+    user = await db.users.find_one({"username": username})
+    if user:
+        return user_detail_helper(user)
     return None
 
 async def get_user_document_by_username(username: str):
