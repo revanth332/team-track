@@ -6,7 +6,7 @@ from app.services import user_service
 
 router = APIRouter()
 
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED,dependencies=[Depends(get_current_user)])
 async def create_new_user(user: UserCreate = Body(...)):
     """
     Create a new team member profile.
@@ -27,6 +27,16 @@ async def list_team_members():
     Fetch all team members for the directory.
     """
     return await user_service.get_all_users()
+
+@router.get("/me", response_model=UserResponse)
+async def get_current_member_profile(current_user: dict = Depends(get_current_user)):
+    """
+    Fetch the current user's profile using the username from the token.
+    """
+    user = await user_service.get_user_by_username(current_user["username"])
+    if not user:
+        raise HTTPException(status_code=404, detail="Member not found")
+    return user
 
 @router.put("/{user_id}", response_model=UserResponse, dependencies=[Depends(get_current_user)])
 async def update_member_profile(user_id: str, user_update: UserUpdate = Body(...)):

@@ -1,10 +1,44 @@
 from bson import ObjectId
 from app.core.database import get_database
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import ActiveProject, UserCreate, UserUpdate
 from datetime import datetime
+from pydantic import ValidationError
+
+def normalize_active_projects(active_projects) -> list[dict]:
+    if not isinstance(active_projects, list):
+        return []
+
+    normalized_projects = []
+    for project in active_projects:
+        if isinstance(project, str):
+            normalized_projects.append({
+                "title": project,
+                "description": "",
+                "is_active": True,
+                "occupancy": 0
+            })
+            continue
+
+        if isinstance(project, dict):
+            try:
+                normalized_projects.append(ActiveProject.model_validate(project).model_dump())
+            except ValidationError:
+                return []
+
+    return normalized_projects
+
+def calculate_bandwidth(active_projects: list[dict]) -> int:
+    total_occupancy = sum(
+        project["occupancy"]
+        for project in active_projects
+        if project["is_active"]
+    )
+    return 100 - total_occupancy
 
 # Helper function to map MongoDB document to our Pydantic Response
 def user_helper(user) -> dict:
+    active_projects = normalize_active_projects(user.get("active_projects"))
+
     return {
         "id": str(user["_id"]),
         "name": user.get("name"),
@@ -13,7 +47,7 @@ def user_helper(user) -> dict:
         "empid": user.get("empid"),
         "image": user.get("image"),
         "role": user.get("role"),
-        "active_projects": user.get("active_projects",[]),
+        "active_projects": active_projects,
         
         # Pull the time strings from DB (Pydantic will auto-convert them back to time objects for the API response)
         "shift_start": user.get("shift_start"),
@@ -21,7 +55,7 @@ def user_helper(user) -> dict:
         
         "skills": user.get("skills",[]),
         "birthday": user.get("birthday"),
-        "bandwidth": user.get("bandwidth")
+        "bandwidth": calculate_bandwidth(active_projects)
     }
 
 async def create_user(user_data: UserCreate):

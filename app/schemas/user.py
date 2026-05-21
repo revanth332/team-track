@@ -2,9 +2,11 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import date, time
 
-class BandWidth(BaseModel):
-    percentage: int = Field(..., example=75)
-    hours: float = Field(..., example=2)
+class ActiveProject(BaseModel):
+    title: str = Field(..., example="Project title")
+    description: str = Field(..., example="Project description")
+    is_active: bool = Field(..., example=True)
+    occupancy: int = Field(..., ge=0, le=100, example=50)
 
 # Base model containing the common fields
 class UserBase(BaseModel):
@@ -14,8 +16,14 @@ class UserBase(BaseModel):
     empid: str = Field(..., example="6062")
     image: Optional[str] = Field(default=None, example="https://s3.aws.com/profile.jpg")
     role: str = Field(..., example="Frontend Developer")
-    active_projects: List[str] = Field(default=[], example=["Project Alpha", "Core App"])
-    bandwidth: BandWidth = Field(..., example={"percentage": 75, "hours": 2})
+    active_projects: List[ActiveProject] = Field(default_factory=list, example=[
+        {
+            "title": "Project Alpha",
+            "description": "Core app modernization",
+            "is_active": True,
+            "occupancy": 50
+        }
+    ])
     
     # Replaced shift string with start and end times
     shift_start: time = Field(default=time(9, 0), example="16:00:00") # 4:00 PM
@@ -35,14 +43,14 @@ class UserUpdate(BaseModel):
     empid: Optional[str] = None
     image: Optional[str] = None
     role: Optional[str] = None
-    active_projects: Optional[List[str]] = None
+    active_projects: Optional[List[ActiveProject]] = None
     shift_start: Optional[time] = None
     shift_end: Optional[time] = None
     skills: Optional[List[str]] = None
     birthday: Optional[date] = None
-    bandwidth: Optional[BandWidth] = None
 
 # Schema for sending data back to frontend (Response)
 class UserResponse(UserBase):
     id: str 
+    bandwidth: int = Field(..., example=50)
     model_config = ConfigDict(populate_by_name=True)
