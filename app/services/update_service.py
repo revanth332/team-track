@@ -6,14 +6,29 @@ from datetime import datetime, timezone
 from app.core.database import get_database
 from app.schemas.update import WeeklyUpdateCreate, WeeklyUpdateModify
 
+def normalize_projects(projects, fallback_role=None) -> list[dict]:
+    if not isinstance(projects, list):
+        return []
+
+    normalized_projects = []
+    for project in projects:
+        if not isinstance(project, dict):
+            continue
+
+        project_data = dict(project)
+        if project_data.get("role") is None and fallback_role is not None:
+            project_data["role"] = fallback_role
+        normalized_projects.append(project_data)
+
+    return normalized_projects
+
 def update_helper(update_doc) -> dict:
     return {
         "id": str(update_doc["_id"]),
         "name": update_doc.get("name"),
-        "role": update_doc.get("role"),
         "username": update_doc.get("username"),
         "week_end_date": update_doc.get("week_end_date"),
-        "projects": update_doc.get("projects"),
+        "projects": normalize_projects(update_doc.get("projects"), update_doc.get("role")),
         "occupancy":update_doc.get("occupancy"),
         "created_at": update_doc.get("created_at"),
         "seen_by_lead": update_doc.get("seen_by_lead", False)

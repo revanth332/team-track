@@ -15,7 +15,9 @@ def normalize_active_projects(active_projects) -> list[dict]:
                 "title": project,
                 "description": "",
                 "is_active": True,
-                "occupancy": 0
+                "occupancy": 0,
+                "client": None,
+                "role": None
             })
             continue
 
