@@ -26,6 +26,8 @@ def normalize_active_projects(active_projects) -> list:
                     "description": "",
                     "is_active": True,
                     "occupancy": 0,
+                    "client": None,
+                    "role": None,
                 })
             continue
 
@@ -36,6 +38,8 @@ def normalize_active_projects(active_projects) -> list:
         description = project.get("description")
         is_active = project.get("is_active")
         occupancy = project.get("occupancy")
+        client = project.get("client")
+        role = project.get("role")
 
         if (
             not isinstance(title, str)
@@ -43,6 +47,8 @@ def normalize_active_projects(active_projects) -> list:
             or not isinstance(is_active, bool)
             or not isinstance(occupancy, int)
             or isinstance(occupancy, bool)
+            or (client is not None and not isinstance(client, str))
+            or (role is not None and not isinstance(role, str))
         ):
             continue
 
@@ -51,6 +57,8 @@ def normalize_active_projects(active_projects) -> list:
             "description": description,
             "is_active": is_active,
             "occupancy": occupancy,
+            "client": client,
+            "role": role,
         })
 
     return normalized_projects

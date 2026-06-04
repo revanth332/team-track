@@ -7,6 +7,8 @@ class ActiveProject(BaseModel):
     description: str = Field(..., example="Internal team tracking dashboard")
     is_active: bool = Field(..., example=True)
     occupancy: int = Field(..., ge=0, le=100, strict=True, example=50)
+    client: Optional[str] = Field(default=None, example="Client Beta")
+    role: Optional[str] = Field(default=None, example="Frontend Developer")
 
 # Base model containing the common fields
 class UserBase(BaseModel):
@@ -27,6 +29,8 @@ class UserBase(BaseModel):
                 "description": "Internal team tracking dashboard",
                 "is_active": True,
                 "occupancy": 50,
+                "client": "Client Beta",
+                "role": "Frontend Developer",
             }
         ],
     )

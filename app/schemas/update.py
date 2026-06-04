@@ -5,15 +5,16 @@ from datetime import date, datetime
 class ProjectInfo(BaseModel):
     project_name: str
     client: str
+    role: Optional[str] = Field(default=None, example="Frontend Engineer")
     task_description: str
 
 class WeeklyUpdateBase(BaseModel):
     name: str = Field(..., example="Jane Doe")
-    role: str = Field(..., example="Frontend Engineer")
     projects: List[ProjectInfo] = Field(..., example=[
         {
             "project_name": "Project Alpha",
             "client": "Client Beta",
+            "role": "Frontend Engineer",
             "task_description": "Worked on UI components"
         }
     ])
