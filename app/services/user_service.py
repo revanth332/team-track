@@ -75,6 +75,34 @@ def normalize_optional_text(value):
     value = value.strip()
     return value or None
 
+def normalize_position(value):
+    if not isinstance(value, str):
+        return value
+    return value.strip().lower()
+
+def should_clear_lead_reports_for_position_change(existing_user: dict, new_position: str) -> bool:
+    current_position = normalize_position(existing_user.get("position") if existing_user else None)
+    normalized_position = normalize_position(new_position)
+    return current_position == "lead" and normalized_position != "lead"
+
+def should_clear_manager_reports_for_position_change(existing_user: dict, new_position: str) -> bool:
+    current_position = normalize_position(existing_user.get("position") if existing_user else None)
+    normalized_position = normalize_position(new_position)
+    return current_position == "manager" and normalized_position != "manager"
+
+def is_position_change(existing_user: dict, new_position: str) -> bool:
+    current_position = normalize_position(existing_user.get("position") if existing_user else None)
+    normalized_position = normalize_position(new_position)
+    return current_position != normalized_position
+
+async def clear_reports_for_demoted_position(db, assignment_field: str, username: str):
+    if not username:
+        return
+    await db.users.update_many(
+        {assignment_field: username},
+        {"$set": {assignment_field: None}},
+    )
+
 # Helper function to map MongoDB document to our Pydantic Response
 def user_helper(user) -> dict:
     active_projects = normalize_active_projects(user.get("active_projects"))
@@ -303,12 +331,36 @@ async def assign_user(user_data: UserAssign):
 
 async def assign_user_position(user_data: UserPositionAssign):
     db = get_database()
+    normalized_position = normalize_position(user_data.position)
+    existing_user = await db.users.find_one({"username": user_data.username})
+    if not existing_user:
+        return None
+
+    should_clear_lead_reports = should_clear_lead_reports_for_position_change(
+        existing_user,
+        normalized_position,
+    )
+    should_clear_manager_reports = should_clear_manager_reports_for_position_change(
+        existing_user,
+        normalized_position,
+    )
+    username = existing_user.get("username")
+    update_data = {"position": normalized_position}
+    if is_position_change(existing_user, normalized_position):
+        update_data["lead_id"] = None
+        update_data["manager_id"] = None
+
     result = await db.users.update_one(
         {"username": user_data.username},
-        {"$set": {"position": user_data.position}}
+        {"$set": update_data}
     )
     if result.matched_count == 0:
         return None
+
+    if should_clear_lead_reports:
+        await clear_reports_for_demoted_position(db, "lead_id", username)
+    if should_clear_manager_reports:
+        await clear_reports_for_demoted_position(db, "manager_id", username)
 
     updated_user = await db.users.find_one({"username": user_data.username})
     return user_helper(updated_user)
@@ -348,6 +400,12 @@ async def get_user_by_email(email: str):
 async def update_user(user_id: str, data: UserUpdate):
     db = get_database()
     update_data = data.model_dump(exclude_unset=True)
+    user_object_id = ObjectId(user_id)
+    existing_user = None
+    should_clear_lead_reports = False
+    should_clear_manager_reports = False
+    should_clear_user_assignments = False
+    username = None
     
     # Convert dates/times if they are included in the update request
     if "birthday" in update_data and update_data["birthday"]:
@@ -364,11 +422,31 @@ async def update_user(user_id: str, data: UserUpdate):
         update_data["bandwidth"] = calculate_bandwidth(update_data["active_projects"])
     if "shift_sheet_name" in update_data:
         update_data["shift_sheet_name"] = normalize_optional_text(update_data.get("shift_sheet_name"))
+    if "position" in update_data:
+        update_data["position"] = normalize_position(update_data["position"])
+        existing_user = await db.users.find_one({"_id": user_object_id})
+        should_clear_lead_reports = should_clear_lead_reports_for_position_change(
+            existing_user,
+            update_data["position"],
+        )
+        should_clear_manager_reports = should_clear_manager_reports_for_position_change(
+            existing_user,
+            update_data["position"],
+        )
+        should_clear_user_assignments = is_position_change(existing_user, update_data["position"])
+        username = existing_user.get("username") if existing_user else None
+        if should_clear_user_assignments:
+            update_data["lead_id"] = None
+            update_data["manager_id"] = None
 
     if len(update_data) >= 1:
         updated_result = await db.users.update_one(
-            {"_id": ObjectId(user_id)}, {"$set": update_data}
+            {"_id": user_object_id}, {"$set": update_data}
         )
+        if updated_result.matched_count == 1 and should_clear_lead_reports:
+            await clear_reports_for_demoted_position(db, "lead_id", username)
+        if updated_result.matched_count == 1 and should_clear_manager_reports:
+            await clear_reports_for_demoted_position(db, "manager_id", username)
         if updated_result.modified_count == 1:
             return await get_user_by_id(user_id)
             
