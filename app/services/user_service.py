@@ -11,6 +11,7 @@ from app.schemas.user import (
 )
 from datetime import datetime
 from math import ceil
+from app.core.config import settings
 
 def normalize_active_projects(active_projects) -> list:
     if not isinstance(active_projects, list):
@@ -121,9 +122,8 @@ def user_bandwidth_helper(user) -> dict:
 async def create_user(user_data: UserCreate):
     db = get_database()
     user_dict = user_data.model_dump()
-    if user_data.password:
-        user_dict["password_hash"] = hash_password(user_data.password)
-    user_dict.pop("password", None)
+    password = user_data.password or settings.DEFAULT_PASSWORD
+    user_dict["password_hash"] = hash_password(password)
     user_dict["active_projects"] = normalize_active_projects(user_dict.get("active_projects"))
     user_dict["bandwidth"] = calculate_bandwidth(user_dict["active_projects"])
     
