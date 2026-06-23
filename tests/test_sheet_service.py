@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi import HTTPException
@@ -140,12 +141,80 @@ class SheetResolverTests(unittest.IsolatedAsyncioTestCase):
             patch.object(sheet_service, "ZohoSheetManager", return_value=manager) as manager_class,
         ):
             result = await sheet_service.get_zoho_sheet_data(
-                Mock(header_row=1, page=1, per_page=100, year=2026, month=5, date=None, name=None, status=None),
+                SimpleNamespace(header_row=1, page=1, per_page=100, year=2026, month=5, date=None, name=None, status=None),
                 {"username": "lead1", "position": "lead"},
             )
 
         manager_class.assert_called_once_with(worksheet_name="Resolved Sheet")
         self.assertEqual(result["data"], [])
+
+    async def test_get_sheet_data_ignores_invalid_dates(self):
+        db = FakeDatabase({
+            "username": "lead1",
+            "position": "lead",
+            "shift_sheet_name": "Resolved Sheet",
+        })
+        manager = Mock()
+        manager.worksheet_name = "Resolved Sheet"
+        manager.fetch_records.return_value = [
+            {
+                "#": 1,
+                "Employee Name": "Valid Employee",
+                "Date": "21/06/2026",
+                "Resolved Sheet\nLead Approval\nYes/No": "Approved",
+            },
+            {
+                "#": 2,
+                "Employee Name": "Invalid Employee",
+                "Date": 46069,
+                "Resolved Sheet\nLead Approval\nYes/No": "Approved",
+            },
+            {
+                "#": 3,
+                "Employee Name": "Bad String",
+                "Date": "2026-06-21",
+                "Resolved Sheet\nLead Approval\nYes/No": "Approved",
+            },
+        ]
+
+        with (
+            patch.object(sheet_service, "get_database", return_value=db),
+            patch.object(sheet_service, "ZohoSheetManager", return_value=manager),
+        ):
+            result = await sheet_service.get_zoho_sheet_data(
+                SimpleNamespace(header_row=1, page=1, per_page=100, year=None, month=None, date=None, name=None, status=None),
+                {"username": "lead1", "position": "lead"},
+            )
+
+        self.assertEqual(result["count"], 1)
+        self.assertEqual(result["data"][0]["name"], "Valid Employee")
+        self.assertEqual(result["data"][0]["lead_approval"], "Approved")
+
+    async def test_status_filter_uses_resolved_sheet_name_in_approval_column(self):
+        db = FakeDatabase({
+            "username": "lead1",
+            "position": "lead",
+            "shift_sheet_name": "Resolved Sheet",
+        })
+        manager = Mock()
+        manager.worksheet_name = "Resolved Sheet"
+        manager.fetch_records.return_value = []
+
+        with (
+            patch.object(sheet_service, "get_database", return_value=db),
+            patch.object(sheet_service, "ZohoSheetManager", return_value=manager),
+        ):
+            await sheet_service.get_zoho_sheet_data(
+                SimpleNamespace(header_row=1, page=1, per_page=100, year=None, month=None, date=None, name=None, status="Pending"),
+                {"username": "lead1", "position": "lead"},
+            )
+
+        manager.fetch_records.assert_called_once_with(
+            header_row=1,
+            criteria='("Resolved Sheet\nLead Approval\nYes/No" = "")',
+            page=1,
+            per_page=100,
+        )
 
 
 if __name__ == "__main__":

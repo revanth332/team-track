@@ -17,8 +17,8 @@ async def list_shifts(
     """
     Fetch shift changes. Optionally filter by a date range.
     """
-    if not request.year or not request.month:
-        raise HTTPException(status_code=400, detail="Year and month query parameters are required")
+    # if not request.year or not request.month:
+    #     raise HTTPException(status_code=400, detail="Year and month query parameters are required")
     return await sheet_service.get_zoho_sheet_data(request, current_user, lead_id)
 
 @router.post("/", response_model=ShiftResponse, status_code=status.HTTP_201_CREATED)

@@ -1,21 +1,20 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import HTTPException, status
 
 from app.core.database import get_database
 from app.schemas.sheet import CreateSheetRequest, GetSheetRequest, UpdateSheetRequest
-from app.services.shift_service import shift_helper
+from app.services.shift_service import lead_approval_field, shift_helper
 from app.services.zoho_sheet_manager import ZohoSheetManager
 
 
-field_mapping = {
+STATIC_FIELD_MAPPING = {
     "name": "Employee Name",
     "date": "Date",
     "actual_shift": "Hubble Shift Timings",
     "worked_shift": "Worked Shift Timings",
     "project": "Project Name",
     "reason": "Reason",
-    "lead_approval": "Sandeep\nLead Approval\nYes/No",
     "hr_verification": "HR Verified\nBiometric\nYes/No",
     "manager_approval": "Vamsi Approval",
     "manager_remarks": "Manager Comments if any",
@@ -105,13 +104,20 @@ async def _sheet_manager_for_user(current_user: dict, lead_id: str = None) -> Zo
     return ZohoSheetManager(worksheet_name=sheet_name)
 
 
-def _shift_record_from_request(request: CreateSheetRequest) -> dict:
+def _field_mapping(sheet_name: str) -> dict:
+    return {
+        **STATIC_FIELD_MAPPING,
+        "lead_approval": lead_approval_field(sheet_name),
+    }
+
+
+def _shift_record_from_request(request: CreateSheetRequest, sheet_name: str) -> dict:
     if not request.record:
         raise HTTPException(status_code=422, detail="record is required")
 
     shift_record = {}
     for key, value in request.record.model_dump().items():
-        zoho_field = field_mapping.get(key)
+        zoho_field = _field_mapping(sheet_name).get(key)
         if zoho_field:
             shift_record[zoho_field] = value
     return shift_record
@@ -121,23 +127,53 @@ def _record_identity_criteria(name: str, date: str) -> str:
     return f'"Date"="{date}" and "Employee Name"="{name}"'
 
 
-def _build_fetch_criteria(request: GetSheetRequest) -> str:
+def _build_fetch_criteria(request: GetSheetRequest, sheet_name: str) -> str:
     criteria = []
 
-    if request.year and request.month:
-        criteria.append(
-            f'("Date" contains "{request.month}/{request.year}" '
-            f'or "Date" contains "{request.month:02d}/{request.year}")'
-        )
+    if request.year:
+        criteria.append(f'("Date" contains "{request.year}")')
     if request.date:
         criteria.append(f'("Date" = "{request.date}")')
     if request.name:
         criteria.append(f'("Employee Name" = "{request.name}")')
     if request.status:
         status_value = "" if request.status == "Pending" else request.status
-        criteria.append(f'("Sandeep\nLead Approval\nYes/No" = "{status_value}")')
+        criteria.append(f'("{lead_approval_field(sheet_name)}" = "{status_value}")')
 
     return " and ".join(criteria)
+
+
+def _parse_sheet_date(value):
+    if isinstance(value, (int, float)):
+        return datetime(1899, 12, 30) + timedelta(days=int(value))
+
+    if not isinstance(value, str):
+        return None
+
+    value = value.strip()
+    for date_format in ("%d/%m/%Y", "%m/%d/%Y"):
+        try:
+            return datetime.strptime(value, date_format)
+        except ValueError:
+            continue
+    return None
+
+
+def _record_matches_requested_date(record: dict, request: GetSheetRequest) -> bool:
+    parsed_date = _parse_sheet_date(record.get("Date"))
+    if not parsed_date:
+        return False
+
+    if request.year and parsed_date.year != request.year:
+        return False
+    if request.month and parsed_date.month != request.month:
+        return False
+    if request.date:
+        requested_date = _parse_sheet_date(request.date)
+        if not requested_date or parsed_date.date() != requested_date.date():
+            return False
+
+    return True
 
 
 def _next_row_id(rows: list) -> int:
@@ -152,7 +188,7 @@ def _next_row_id(rows: list) -> int:
 
 async def add_row_zoho_sheet(request: CreateSheetRequest, current_user: dict, lead_id: str = None):
     sheet_manager = await _sheet_manager_for_user(current_user, lead_id)
-    shift_record = _shift_record_from_request(request)
+    shift_record = _shift_record_from_request(request, sheet_manager.worksheet_name)
     name = shift_record.get("Employee Name")
     date = shift_record.get("Date")
     criteria = _record_identity_criteria(name, date)
@@ -176,14 +212,18 @@ async def get_zoho_sheet_data(request: GetSheetRequest, current_user: dict, lead
     sheet_manager = await _sheet_manager_for_user(current_user, lead_id)
     records = sheet_manager.fetch_records(
         header_row=request.header_row,
-        criteria=_build_fetch_criteria(request),
+        criteria=_build_fetch_criteria(request, sheet_manager.worksheet_name),
         page=request.page,
         per_page=request.per_page,
     )
-    valid_records = [record for record in records if record.get("Employee Name") and record.get("Date")]
+    valid_records = [
+        record
+        for record in records
+        if record.get("Employee Name") and _record_matches_requested_date(record, request)
+    ]
     shifts = sorted(
-        [shift_helper(record) for record in valid_records],
-        key=lambda shift: datetime.strptime(shift["date"], "%d/%m/%Y"),
+        [shift_helper(record, sheet_manager.worksheet_name) for record in valid_records],
+        key=lambda shift: _parse_sheet_date(shift["date"]),
         reverse=True,
     )
 
@@ -205,7 +245,7 @@ async def update_row_zoho_sheet(
     Update the first matching shift record for an employee and date.
     """
     sheet_manager = await _sheet_manager_for_user(current_user, lead_id)
-    shift_record = _shift_record_from_request(request)
+    shift_record = _shift_record_from_request(request, sheet_manager.worksheet_name)
     return sheet_manager.update_records(
         shift_record,
         criteria=_record_identity_criteria(name, date),
