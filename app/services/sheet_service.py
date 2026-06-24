@@ -145,7 +145,7 @@ def _build_fetch_criteria(request: GetSheetRequest, sheet_name: str) -> str:
 
 def _parse_sheet_date(value):
     if isinstance(value, (int, float)):
-        return datetime(1899, 12, 30) + timedelta(days=int(value))
+        return None
 
     if not isinstance(value, str):
         return None
