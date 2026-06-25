@@ -17,8 +17,8 @@ async def list_shifts(
     """
     Fetch shift changes. Optionally filter by a date range.
     """
-    # if not request.year or not request.month:
-    #     raise HTTPException(status_code=400, detail="Year and month query parameters are required")
+    if not request.year or not request.month:
+        raise HTTPException(status_code=400, detail="Year and month query parameters are required")
     return await sheet_service.get_zoho_sheet_data(request, current_user, lead_id)
 
 @router.post("/", response_model=ShiftResponse, status_code=status.HTTP_201_CREATED)
@@ -31,14 +31,6 @@ async def log_shift_change(
     Log a new shift delay or change.
     """
     return await sheet_service.add_row_zoho_sheet(shift, current_user, lead_id)
-# @router.get("/",dependencies=[Depends(get_current_user)])
-# async def list_shifts(request: GetSheetRequest = Query(...)):
-#     """
-#     Fetch shift changes. Optionally filter by a date range.
-#     """
-#     if not request.year or not request.month:
-#         raise HTTPException(status_code=400, detail="Year and month query parameters are required")
-#     return await sheet_service.get_zoho_sheet_data(request)
 
 @router.put("/", response_model=ShiftResponse)
 async def update_shift_change(
