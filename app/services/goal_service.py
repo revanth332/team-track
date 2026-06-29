@@ -97,9 +97,12 @@ async def update_goal(goal_id: str, goal_data: GoalUpdate):
     updated_goal = await db.goals.find_one({"_id": ObjectId(goal_id)})
     return goal_helper(updated_goal) if updated_goal else None
 
-async def delete_goal(goal_id: str):
+async def delete_goal(goal_id: str, lead_id: str = None):
     db = get_database()
     if not ObjectId.is_valid(goal_id):
         return False
-    result = await db.goals.delete_one({"_id": ObjectId(goal_id)})
+    query = {"_id": ObjectId(goal_id)}
+    if lead_id:
+        query["lead_id"] = lead_id
+    result = await db.goals.delete_one(query)
     return result.deleted_count > 0

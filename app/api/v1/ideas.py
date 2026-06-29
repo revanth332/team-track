@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, status, Depends, Body
 from app.schemas.idea import IdeaCreate, IdeaListResponse, IdeaUpdate, IdeaResponse
 from app.services import idea_service
-from app.api.dependencies import get_current_user, get_hierarchy_ids
+from app.api.dependencies import get_current_user, get_hierarchy_ids, require_lead_user
 
 router = APIRouter()
 
@@ -82,12 +82,16 @@ async def modify_idea(
 
     return updated_idea
 
-@router.delete("/{idea_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)])
-async def remove_idea(idea_id: str):
+@router.delete("/{idea_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_idea(
+    idea_id: str,
+    current_user: dict = Depends(get_current_user),
+):
     """
     Delete an idea from the backlog.
     """
-    success = await idea_service.delete_idea(idea_id)
+    lead_id = require_lead_user(current_user)
+    success = await idea_service.delete_idea(idea_id, lead_id=lead_id)
     if not success:
         raise HTTPException(status_code=404, detail="Idea not found")
     return None

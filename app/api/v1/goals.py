@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Query, status, Depends, Body
 from typing import List
 from app.schemas.goal import GoalCreate, GoalUpdate, GoalResponse
 from app.services import goal_service
-from app.api.dependencies import get_current_user, get_hierarchy_ids
+from app.api.dependencies import get_current_user, get_hierarchy_ids, require_lead_user
 
 router = APIRouter()
 
@@ -12,7 +12,8 @@ async def add_new_goal(
     current_user: dict = Depends(get_current_user)
 ):
     """ Manually create a Quarterly Goal """
-    hierarchy = get_hierarchy_ids(current_user, goal.lead_id)
+    lead_id = require_lead_user(current_user)
+    hierarchy = get_hierarchy_ids(current_user, lead_id)
     goal = goal.model_copy(update=hierarchy)
     return await goal_service.create_goal(goal)
 
@@ -49,10 +50,14 @@ async def modify_goal(
         raise HTTPException(status_code=404, detail="Goal not found")
     return updated_goal
 
-@router.delete("/{goal_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)])
-async def remove_goal(goal_id: str):
+@router.delete("/{goal_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_goal(
+    goal_id: str,
+    current_user: dict = Depends(get_current_user),
+):
     """ Delete a Goal """
-    success = await goal_service.delete_goal(goal_id)
+    lead_id = require_lead_user(current_user)
+    success = await goal_service.delete_goal(goal_id, lead_id=lead_id)
     if not success:
         raise HTTPException(status_code=404, detail="Goal not found")
     return None

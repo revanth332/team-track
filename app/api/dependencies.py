@@ -68,6 +68,15 @@ def get_hierarchy_ids(current_user: dict, lead_id: str = None) -> dict:
         "manager_id": current_user.get("manager_id"),
     }
 
+
+def require_lead_user(current_user: dict) -> str:
+    if (current_user.get("position") or "").lower() != "lead":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only leads can perform this action",
+        )
+    return current_user["username"]
+
 # Optional helper specifically for admin-only routes
 async def get_current_admin(current_user: dict = Depends(get_current_user)):
     if current_user.get("role") != "admin":

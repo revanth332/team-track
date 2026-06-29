@@ -168,10 +168,13 @@ async def update_idea(idea_id: str, idea_data: IdeaUpdate):
 
     return idea_helper(updated_idea) if updated_idea else None
 
-async def delete_idea(idea_id: str):
+async def delete_idea(idea_id: str, lead_id: str = None):
     db = get_database()
     if not ObjectId.is_valid(idea_id):
         return False
-        
-    result = await db.ideas.delete_one({"_id": ObjectId(idea_id)})
+
+    query = {"_id": ObjectId(idea_id)}
+    if lead_id:
+        query["lead_id"] = lead_id
+    result = await db.ideas.delete_one(query)
     return result.deleted_count > 0

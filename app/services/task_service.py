@@ -148,7 +148,12 @@ async def submit_task(task_id: str, submission: TaskSubmission, username: str):
     return task_helper(updated_task), None
 
 
-async def review_task(task_id: str, review: TaskReview, reviewed_by: str):
+async def review_task(
+    task_id: str,
+    review: TaskReview,
+    reviewed_by: str,
+    lead_id: str = None,
+):
     db = get_database()
     if not ObjectId.is_valid(task_id):
         return None
@@ -160,14 +165,24 @@ async def review_task(task_id: str, review: TaskReview, reviewed_by: str):
         "reviewed_at": _utc_now(),
         "updated_at": _utc_now(),
     }
-    await db.tasks.update_one({"_id": ObjectId(task_id)}, {"$set": update_dict})
-    updated_task = await db.tasks.find_one({"_id": ObjectId(task_id)})
+    query = {"_id": ObjectId(task_id)}
+    if lead_id:
+        query["lead_id"] = lead_id
+
+    result = await db.tasks.update_one(query, {"$set": update_dict})
+    if result.matched_count == 0:
+        return None
+
+    updated_task = await db.tasks.find_one(query)
     return task_helper(updated_task) if updated_task else None
 
 
-async def delete_task(task_id: str):
+async def delete_task(task_id: str, lead_id: str = None):
     db = get_database()
     if not ObjectId.is_valid(task_id):
         return False
-    result = await db.tasks.delete_one({"_id": ObjectId(task_id)})
+    query = {"_id": ObjectId(task_id)}
+    if lead_id:
+        query["lead_id"] = lead_id
+    result = await db.tasks.delete_one(query)
     return result.deleted_count > 0

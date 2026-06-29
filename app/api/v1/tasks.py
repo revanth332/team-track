@@ -1,21 +1,12 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from typing import Optional
 
-from app.api.dependencies import get_current_user, get_hierarchy_ids
+from app.api.dependencies import get_current_user, get_hierarchy_ids, require_lead_user
 from app.schemas.task import TaskCreate, TaskListResponse, TaskResponse, TaskReview, TaskSubmission, TaskUpdate
 from app.services import task_service
 
 
 router = APIRouter()
-
-
-def require_admin(current_user: dict):
-    if not current_user.get("is_admin"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can perform this action",
-        )
-
 
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
@@ -149,8 +140,13 @@ async def review_task(
     """
     Approve or reject a submitted task.
     """
-    require_admin(current_user)
-    updated_task = await task_service.review_task(task_id, review, current_user["username"])
+    lead_id = require_lead_user(current_user)
+    updated_task = await task_service.review_task(
+        task_id,
+        review,
+        current_user["username"],
+        lead_id=lead_id,
+    )
     if not updated_task:
         raise HTTPException(status_code=404, detail="Task not found")
     return updated_task
@@ -164,13 +160,8 @@ async def delete_task(
     """
     Delete a task.
     """
-    existing_task = await task_service.get_task_by_id(task_id)
-    if not existing_task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    if not current_user.get("is_admin") and existing_task["username"] != current_user["username"]:
-        raise HTTPException(status_code=403, detail="You can only delete your own tasks")
-
-    success = await task_service.delete_task(task_id)
+    lead_id = require_lead_user(current_user)
+    success = await task_service.delete_task(task_id, lead_id=lead_id)
     if not success:
         raise HTTPException(status_code=404, detail="Task not found")
     return None
