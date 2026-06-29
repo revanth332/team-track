@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, status, Depends, Body
 from app.schemas.idea import IdeaCreate, IdeaListResponse, IdeaUpdate, IdeaResponse
 from app.services import idea_service
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, get_hierarchy_ids
 
 router = APIRouter()
 
@@ -13,6 +13,8 @@ async def add_new_idea(
     """
     Add a new raw idea to the backlog.
     """
+    hierarchy = get_hierarchy_ids(current_user, idea.lead_id)
+    idea = idea.model_copy(update=hierarchy)
     return await idea_service.create_idea(idea)
 
 @router.get("/", response_model=IdeaListResponse)

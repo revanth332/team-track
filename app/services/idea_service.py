@@ -20,6 +20,8 @@ def idea_helper(idea_doc) -> dict:
         "video_assignee_username": idea_doc.get("video_assignee_username"),
         "added_by": idea_doc.get("added_by"),
         "created_at": idea_doc.get("created_at"),
+        "lead_id": idea_doc.get("lead_id"),
+        "manager_id": idea_doc.get("manager_id"),
         "tags": idea_doc.get("tags",[])
     }
 
@@ -126,7 +128,9 @@ async def update_idea(idea_id: str, idea_data: IdeaUpdate):
                     progress=0,
                     idea_id=idea_id, # Linking them together!
                     year=datetime.now().year,
-                    quarter=current_quarter
+                    quarter=current_quarter,
+                    lead_id=updated_idea.get("lead_id"),
+                    manager_id=updated_idea.get("manager_id")
                 )
                 
                 # Save the new goal
@@ -154,7 +158,9 @@ async def update_idea(idea_id: str, idea_data: IdeaUpdate):
                     progress=0,
                     idea_id=idea_id, # Linking them together!
                     year=datetime.now().year,
-                    quarter=current_quarter
+                    quarter=current_quarter,
+                    lead_id=updated_idea.get("lead_id"),
+                    manager_id=updated_idea.get("manager_id")
                 )
                 
                 # Save the new goal

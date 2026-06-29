@@ -18,6 +18,8 @@ class IdeaBase(BaseModel):
     blog_assignee_username: Optional[str] = Field(default=None, example="john_smith")
     video_assignee_username: Optional[str] = Field(default=None, example="emily_davis")
     added_by: Optional[str] = Field(default=None, example="Alice Johnson")
+    lead_id: Optional[str] = Field(default=None, example="lead_username")
+    manager_id: Optional[str] = Field(default=None, example="manager_username")
     tags: List[ContentType] = Field(
         ..., 
         description="Must contain 'blog', 'video', or both.",

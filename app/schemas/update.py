@@ -23,6 +23,8 @@ class WeeklyUpdateBase(BaseModel):
     username: str = Field(..., example="jane_doe")
     occupancy: Optional[float] = Field(default=None, example=75)
     seen_by_lead: Optional[bool] = Field(default=False, example=True)
+    lead_id: Optional[str] = Field(default=None, example="lead_username")
+    manager_id: Optional[str] = Field(default=None, example="manager_username")
 
 class WeeklyUpdateCreate(WeeklyUpdateBase):
     pass

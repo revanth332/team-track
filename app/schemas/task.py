@@ -17,6 +17,8 @@ class TaskBase(BaseModel):
     problem_url: Optional[str] = Field(default=None, example="https://www.hackerrank.com/challenges/python-lists")
     description: Optional[str] = Field(default=None, example="Complete all test cases for the challenge.")
     tags: List[str] = Field(default_factory=list, example=["python", "sql"])
+    lead_id: Optional[str] = Field(default=None, example="lead_username")
+    manager_id: Optional[str] = Field(default=None, example="manager_username")
 
 
 class TaskCreate(TaskBase):

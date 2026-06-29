@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Query, status, Depends, Body
 from typing import List
 from app.schemas.goal import GoalCreate, GoalUpdate, GoalResponse
 from app.services import goal_service
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, get_hierarchy_ids
 
 router = APIRouter()
 
@@ -12,6 +12,8 @@ async def add_new_goal(
     current_user: dict = Depends(get_current_user)
 ):
     """ Manually create a Quarterly Goal """
+    hierarchy = get_hierarchy_ids(current_user, goal.lead_id)
+    goal = goal.model_copy(update=hierarchy)
     return await goal_service.create_goal(goal)
 
 @router.get("/", response_model=List[GoalResponse])

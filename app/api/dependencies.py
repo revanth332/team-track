@@ -45,6 +45,29 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except jwt.PyJWTError:
         raise credentials_exception
 
+
+def get_hierarchy_ids(current_user: dict, lead_id: str = None) -> dict:
+    position = (current_user.get("position") or "").lower()
+    username = current_user.get("username")
+    requested_lead_id = lead_id.strip().lower() if lead_id else None
+
+    if position == "manager":
+        return {
+            "lead_id": requested_lead_id,
+            "manager_id": username,
+        }
+
+    if position == "lead":
+        return {
+            "lead_id": username,
+            "manager_id": current_user.get("manager_id"),
+        }
+
+    return {
+        "lead_id": current_user.get("lead_id"),
+        "manager_id": current_user.get("manager_id"),
+    }
+
 # Optional helper specifically for admin-only routes
 async def get_current_admin(current_user: dict = Depends(get_current_user)):
     if current_user.get("role") != "admin":

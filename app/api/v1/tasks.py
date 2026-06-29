@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from typing import Optional
 
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, get_hierarchy_ids
 from app.schemas.task import TaskCreate, TaskListResponse, TaskResponse, TaskReview, TaskSubmission, TaskUpdate
 from app.services import task_service
 
@@ -26,7 +26,14 @@ async def create_task(
     Create a task for the current user to track completed work.
     """
     created_by = current_user.get("name") or current_user["username"]
-    return await task_service.create_task(task, current_user["username"], created_by)
+    hierarchy = get_hierarchy_ids(current_user, task.lead_id)
+    return await task_service.create_task(
+        task,
+        current_user["username"],
+        created_by,
+        lead_id=hierarchy["lead_id"],
+        manager_id=hierarchy["manager_id"],
+    )
 
 
 @router.get("/", response_model=TaskListResponse)

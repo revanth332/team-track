@@ -33,11 +33,19 @@ def task_helper(task_doc) -> dict:
     }
 
 
-async def create_task(task_data: TaskCreate, username: str, created_by: str):
+async def create_task(
+    task_data: TaskCreate,
+    username: str,
+    created_by: str,
+    lead_id: str = None,
+    manager_id: str = None,
+):
     db = get_database()
     task_dict = task_data.model_dump()
     task_dict["username"] = username
     task_dict["created_by"] = created_by
+    task_dict["lead_id"] = lead_id
+    task_dict["manager_id"] = manager_id
     task_dict["status"] = "Pending"
     task_dict["created_at"] = _utc_now()
 

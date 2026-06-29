@@ -19,6 +19,8 @@ class GoalBase(BaseModel):
     year: int = Field(..., example=2026)
     quarter: Literal["Q1", "Q2", "Q3", "Q4"] = Field(..., example="Q2")
     assignee_username: Optional[str] = Field(default=None, example="jane_doe")
+    lead_id: Optional[str] = Field(default=None, example="lead_username")
+    manager_id: Optional[str] = Field(default=None, example="manager_username")
 
 class GoalCreate(GoalBase):
     pass

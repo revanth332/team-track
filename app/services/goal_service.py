@@ -44,6 +44,8 @@ def goal_helper(goal_doc) -> dict:
         "idea_id": goal_doc.get("idea_id"),
         "year": goal_doc.get("year"),
         "quarter": goal_doc.get("quarter"),
+        "lead_id": goal_doc.get("lead_id"),
+        "manager_id": goal_doc.get("manager_id"),
         "created_at": goal_doc.get("created_at")
     }
 

@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import date
 from app.schemas.update import WeeklyUpdateCreate, WeeklyUpdateModify, WeeklyUpdateResponse
 from app.services import update_service
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, get_hierarchy_ids
 
 router = APIRouter() 
 
@@ -15,6 +15,8 @@ async def submit_weekly_update(
     """
     Submit a new weekly status update.
     """
+    hierarchy = get_hierarchy_ids(current_user, update_data.lead_id)
+    update_data = update_data.model_copy(update=hierarchy)
     return await update_service.create_weekly_update(update_data)
 
 @router.get("/", response_model=List[WeeklyUpdateResponse])
