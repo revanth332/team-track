@@ -217,13 +217,15 @@ export interface Idea {
   title: string;
   description: string;
   links: string[];
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Assigned';
   is_blog?: boolean;
   is_video?: boolean;
   blog_assignee?: string | null;
   video_assignee?: string | null;
   tags?: string[];
   created_at: string;
+  year?: number;
+  quarter?: string;
 }
 
 export interface IdeaCreate {
@@ -232,12 +234,14 @@ export interface IdeaCreate {
   title: string;
   description: string;
   links: string[];
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Assigned';
   is_blog?: boolean;
   is_video?: boolean;
   blog_assignee?: string | null;
   video_assignee?: string | null;
   tags?: string[];
+  year?: number;
+  quarter?: string;
 }
 
 export interface LoginCredentials {

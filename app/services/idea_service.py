@@ -22,7 +22,9 @@ def idea_helper(idea_doc) -> dict:
         "created_at": idea_doc.get("created_at"),
         "lead_id": idea_doc.get("lead_id"),
         "manager_id": idea_doc.get("manager_id"),
-        "tags": idea_doc.get("tags",[])
+        "tags": idea_doc.get("tags",[]),
+        "year": idea_doc.get("year"),
+        "quarter": idea_doc.get("quarter")
     }
 
 async def get_idea_by_id(idea_id: str):
@@ -51,7 +53,9 @@ async def get_all_ideas(
     page: int = 1,
     per_page: int = 20,
     manager_id: str = None,
-    lead_id: str = None
+    lead_id: str = None,
+    year: int = None,
+    quarter: str = None
 ):
     db = get_database()
     ideas =[]
@@ -61,7 +65,16 @@ async def get_all_ideas(
         query["username"] = username
     if title:
         query["title"] = {"$regex": title, "$options": "i"}
-    if status:
+    if status == "Assigned":
+        query["$or"] = [
+            {"blog_assignee": {"$nin": [None, ""]}},
+            {"video_assignee": {"$nin": [None, ""]}}
+        ]
+    elif status == "Approved":
+        query["status"] = "Approved"
+        query["blog_assignee"] = {"$in": [None, ""]}
+        query["video_assignee"] = {"$in": [None, ""]}
+    elif status:
         query["status"] = status
     if tag:
         query["tags"] = tag
@@ -69,6 +82,10 @@ async def get_all_ideas(
         query["manager_id"] = manager_id
     if lead_id:
         query["lead_id"] = lead_id
+    if year:
+        query["year"] = year
+    if quarter:
+        query["quarter"] = quarter
 
     total = await db.ideas.count_documents(query)
     skip = (page - 1) * per_page

@@ -24,6 +24,8 @@ class IdeaBase(BaseModel):
         ..., 
         description="Must contain 'blog', 'video', or both.",
     )
+    year: Optional[int] = Field(default=None, example=2026)
+    quarter: Optional[str] = Field(default=None, example="Q3")
 
 class IdeaCreate(IdeaBase):
     pass
@@ -39,6 +41,8 @@ class IdeaUpdate(BaseModel):
     video_assignee_username: Optional[str] = Field(default=None, example="emily_davis")
     added_by: Optional[str] = None
     tags: Optional[List[ContentType]] = None
+    year: Optional[int] = None
+    quarter: Optional[str] = None
 
 
 class IdeaResponse(IdeaBase):

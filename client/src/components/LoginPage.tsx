@@ -144,7 +144,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="rlanka"
+                placeholder="Enter username"
                 className="w-full bg-surface-container-low/50 border-none rounded-2xl pl-11 pr-4 py-3.5 text-sm focus:ring-2 focus:ring-primary/10 outline-none transition-all font-medium placeholder:text-on-surface-variant/30"
               />
             </div>

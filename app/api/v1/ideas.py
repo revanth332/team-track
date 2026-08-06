@@ -22,8 +22,10 @@ async def list_all_ideas(
     username: str = Query(None, description="Filter ideas by submitter's username"),
     lead_id: str = Query(None, description="Filter ideas by lead username"),
     title: str = Query(None, description="Filter ideas by title keyword"),
-    status: str = Query(None, description="Filter ideas by status (Pending, Approved, Rejected)"),
+    status: str = Query(None, description="Filter ideas by status"),
     tag: str = Query(None, description="Filter ideas by tag"),
+    year: int = Query(None, description="Filter ideas by year"),
+    quarter: str = Query(None, description="Filter ideas by quarter"),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=100, description="Items per page"),
     current_user: dict = Depends(get_current_user),
@@ -56,6 +58,8 @@ async def list_all_ideas(
         per_page,
         manager_id=manager_id,
         lead_id=lead_id,
+        year=year,
+        quarter=quarter,
     )
 
 @router.put("/{idea_id}", response_model=IdeaResponse)

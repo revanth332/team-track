@@ -233,7 +233,7 @@ export const weeklyUpdateService = {
 };
 
 export const ideaService = {
-  getIdeas: async (filters?: { username?: string; title?: string; status?: string; tag?: string; page?: number; per_page?: number; lead_id?: string }): Promise<PaginatedResponse<Idea>> => {
+  getIdeas: async (filters?: { username?: string; title?: string; status?: string; tag?: string; page?: number; per_page?: number; lead_id?: string; year?: string; quarter?: string }): Promise<PaginatedResponse<Idea>> => {
     const params = new URLSearchParams();
     if (filters?.username) params.append('username', filters.username);
     if (filters?.title) params.append('title', filters.title);
@@ -242,6 +242,8 @@ export const ideaService = {
     if (filters?.page) params.append('page', filters.page.toString());
     if (filters?.per_page) params.append('per_page', filters.per_page.toString());
     if (filters?.lead_id) params.append('lead_id', filters.lead_id);
+    if (filters?.year) params.append('year', filters.year);
+    if (filters?.quarter) params.append('quarter', filters.quarter);
     
     const response = await api.get(`/api/v1/ideas/${params.toString() ? `?${params.toString()}` : ''}`);
     return response.data;

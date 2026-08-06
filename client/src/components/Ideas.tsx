@@ -17,12 +17,21 @@ import ConfirmationModal from './Modals/ConfirmationModal';
 import ReactMarkdown from 'react-markdown';
 import Pagination from './common/Pagination';
 
+const getDisplayStatus = (idea: Idea): 'Pending' | 'Approved' | 'Rejected' | 'Assigned' => {
+  if (idea.status === 'Approved' && (idea.blog_assignee || idea.video_assignee)) {
+    return 'Assigned';
+  }
+  return idea.status as 'Pending' | 'Approved' | 'Rejected';
+};
+
 export default function Ideas() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showToast } = useToast();
   const { selectedAssignee } = useFilter();
   const canApprove = user?.position === 'lead' || user?.position === 'manager';
+  const currentYear = new Date().getFullYear();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAssignContentModalOpen, setIsAssignContentModalOpen] = useState(false);
@@ -31,19 +40,23 @@ export default function Ideas() {
   const [ideaToDelete, setIdeaToDelete] = useState<Idea | null>(null);
   const [ideaToAssign, setIdeaToAssign] = useState<Idea | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Pending');
   const [typeFilter, setTypeFilter] = useState<'all' | 'blog' | 'video'>('all');
+  const [yearFilter, setYearFilter] = useState(currentYear.toString());
+  const [quarterFilter, setQuarterFilter] = useState('');
   const [page, setPage] = useState(1);
   const perPage = 12;
   const debouncedSearch = useDebounce(searchTerm, 500);
 
   const { data: paginatedIdeas, isLoading, isError } = useQuery({
-    queryKey: ['ideas', selectedAssignee?.username, debouncedSearch, statusFilter, typeFilter, page],
+    queryKey: ['ideas', selectedAssignee?.username, debouncedSearch, statusFilter, typeFilter, yearFilter, quarterFilter, page],
     queryFn: () => ideaService.getIdeas({ 
       username: selectedAssignee?.username || undefined,
       title: debouncedSearch || undefined,
       status: statusFilter || undefined,
       tag: typeFilter === 'all' ? '' : typeFilter,
+      year: yearFilter || undefined,
+      quarter: quarterFilter || undefined,
       page,
       per_page: perPage
     }),
@@ -55,7 +68,7 @@ export default function Ideas() {
   // Reset page when filters change
   React.useEffect(() => {
     setPage(1);
-  }, [selectedAssignee, debouncedSearch, statusFilter, typeFilter]);
+  }, [selectedAssignee, debouncedSearch, statusFilter, typeFilter, yearFilter, quarterFilter]);
 
   const deleteMutation = useMutation({
     mutationFn: ideaService.deleteIdea,
@@ -216,6 +229,7 @@ export default function Ideas() {
                 <option value="Pending">Pending</option>
                 <option value="Approved">Approved</option>
                 <option value="Rejected">Rejected</option>
+                <option value="Assigned">Assigned</option>
               </select>
             </div>
 
@@ -226,6 +240,39 @@ export default function Ideas() {
               <Plus size={20} />
               <span>Submit Idea</span>
             </button>
+          </div>
+
+          {/* Year & Quarter Filters Row */}
+          <div className="flex flex-wrap items-center gap-6 bg-surface-container-low/30 p-4 px-6 rounded-3xl border border-outline-variant/5">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">Year:</span>
+              <select 
+                value={yearFilter}
+                onChange={(e) => setYearFilter(e.target.value)}
+                className="bg-surface-container-low px-4 py-2 rounded-xl text-xs font-bold border border-outline-variant/10 focus:ring-2 focus:ring-primary/10 outline-none transition-all text-on-surface-variant w-32 cursor-pointer"
+              >
+                <option value="">All Years</option>
+                {Array.from({ length: 10 }, (_, i) => currentYear - i).map((y) => (
+                  <option key={y} value={y.toString()}>{y}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="h-6 w-[1px] bg-outline-variant/20 hidden sm:block" />
+
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">Quarter:</span>
+              <select 
+                value={quarterFilter}
+                onChange={(e) => setQuarterFilter(e.target.value)}
+                className="bg-surface-container-low px-4 py-2 rounded-xl text-xs font-bold border border-outline-variant/10 focus:ring-2 focus:ring-primary/10 outline-none transition-all text-on-surface-variant w-36 cursor-pointer"
+              >
+                <option value="">All Quarters</option>
+                {['Q1', 'Q2', 'Q3', 'Q4'].map((q) => (
+                  <option key={q} value={q}>{q}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </section>
@@ -253,22 +300,28 @@ export default function Ideas() {
                   className="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/5 shadow-sm hover:shadow-md transition-all flex flex-col h-full group cursor-pointer"
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className={`p-3 rounded-2xl ${
-                      idea.status === 'Approved' ? 'bg-green-100 text-green-600' : 
-                      idea.status === 'Rejected' ? 'bg-error/10 text-error' : 
-                      'bg-amber-100 text-amber-600'
-                    }`}>
-                      {idea.status === 'Approved' ? <CheckCircle2 size={24} /> : <Lightbulb size={24} />}
-                    </div>
+                    {(() => {
+                      const displayStatus = getDisplayStatus(idea);
+                      return (
+                        <div className={`p-3 rounded-2xl ${
+                          displayStatus === 'Approved' ? 'bg-green-100 text-green-600' : 
+                          displayStatus === 'Assigned' ? 'bg-blue-100 text-blue-600' : 
+                          displayStatus === 'Rejected' ? 'bg-error/10 text-error' : 
+                          'bg-amber-100 text-amber-600'
+                        }`}>
+                          {displayStatus === 'Approved' || displayStatus === 'Assigned' ? <CheckCircle2 size={24} /> : <Lightbulb size={24} />}
+                        </div>
+                      );
+                    })()}
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                      {user?.username === idea.username && <button 
+                      {user?.username === idea.username && idea.status === 'Pending' && <button 
                         onClick={() => handleEdit(idea)}
                         className="p-2 hover:bg-surface-container rounded-xl text-on-surface-variant transition-colors"
                         title="Edit Idea"
                       >
                         <Edit2 size={16} />
                       </button>}
-                      {user?.admin && <button 
+                      {user?.admin && idea.status === 'Pending' && <button 
                         onClick={() => handleDeleteClick(idea)}
                         className="p-2 hover:bg-error/10 rounded-xl text-error transition-colors"
                       >
@@ -337,65 +390,74 @@ export default function Ideas() {
                     </div>
 
                     <div className="flex items-center gap-2 pt-2">
-                      {idea.status === 'Pending' ? (
-                        canApprove ? (
-                          <div className="flex items-center gap-2 w-full">
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleStatusUpdate(idea, 'Approved'); }}
-                              disabled={statusMutation.isPending}
-                              className="flex-1 bg-green-500/10 text-green-600 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors disabled:opacity-50"
-                            >
-                              Approve
-                            </button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleStatusUpdate(idea, 'Rejected'); }}
-                              disabled={statusMutation.isPending}
-                              className="flex-1 bg-error/10 text-error py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-error/20 transition-colors disabled:opacity-50"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex-1 bg-amber-500/5 text-amber-600/60 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider text-center border border-amber-500/10">
-                            Pending Approval
-                          </div>
-                        )
-                      ) : idea.status === 'Approved' ? (
-                        canApprove ? (
-                          <div className="flex items-center gap-2 w-full">
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleMakeBlogClick(idea); }}
-                              disabled={updateIdeaMutation.isPending || !!idea.blog_assignee}
-                              className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${
-                                idea.blog_assignee 
-                                  ? 'bg-green-500/10 text-green-600' 
-                                  : 'bg-primary/10 text-primary hover:bg-primary/20'
-                              }`}
-                            >
-                              {idea.blog_assignee ? 'Blog Assigned' : 'Assign Blog'}
-                            </button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleMakeVideoClick(idea); }}
-                              disabled={updateIdeaMutation.isPending || !!idea.video_assignee}
-                              className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${
-                                idea.video_assignee 
-                                  ? 'bg-green-500/10 text-green-600' 
-                                  : 'bg-primary/10 text-primary hover:bg-primary/20'
-                              }`}
-                            >
-                              {idea.video_assignee ? 'Video Assigned' : 'Assign Video'}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex-1 bg-green-500/5 text-green-600 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider text-center border border-green-500/10">
-                            Approved
-                          </div>
-                        )
-                      ) : (
-                        <div className="flex-1 bg-error/5 text-error/40 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider text-center border border-error/10">
-                          Rejected
-                        </div>
-                      )}
+                      {(() => {
+                        const displayStatus = getDisplayStatus(idea);
+                        if (idea.status === 'Pending') {
+                          return canApprove ? (
+                            <div className="flex items-center gap-2 w-full">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleStatusUpdate(idea, 'Approved'); }}
+                                disabled={statusMutation.isPending}
+                                className="flex-1 bg-green-500/10 text-green-600 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-green-500/20 transition-colors disabled:opacity-50"
+                              >
+                                Approve
+                              </button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleStatusUpdate(idea, 'Rejected'); }}
+                                disabled={statusMutation.isPending}
+                                className="flex-1 bg-error/10 text-error py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-error/20 transition-colors disabled:opacity-50"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex-1 bg-amber-500/5 text-amber-600/60 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider text-center border border-amber-500/10">
+                              Pending Approval
+                            </div>
+                          );
+                        } else if (idea.status === 'Approved') {
+                          return canApprove ? (
+                            <div className="flex items-center gap-2 w-full">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleMakeBlogClick(idea); }}
+                                disabled={updateIdeaMutation.isPending || !!idea.blog_assignee}
+                                className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${
+                                  idea.blog_assignee 
+                                    ? 'bg-green-500/10 text-green-600' 
+                                    : 'bg-primary/10 text-primary hover:bg-primary/20'
+                                }`}
+                              >
+                                {idea.blog_assignee ? 'Blog Assigned' : 'Assign Blog'}
+                              </button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleMakeVideoClick(idea); }}
+                                disabled={updateIdeaMutation.isPending || !!idea.video_assignee}
+                                className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${
+                                  idea.video_assignee 
+                                    ? 'bg-green-500/10 text-green-600' 
+                                    : 'bg-primary/10 text-primary hover:bg-primary/20'
+                                }`}
+                              >
+                                {idea.video_assignee ? 'Video Assigned' : 'Assign Video'}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider text-center border ${
+                              displayStatus === 'Assigned' 
+                                ? 'bg-blue-500/5 text-blue-600 border-blue-500/10' 
+                                : 'bg-green-500/5 text-green-600 border-green-500/10'
+                            }`}>
+                              {displayStatus}
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="flex-1 bg-error/5 text-error/40 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider text-center border border-error/10">
+                              Rejected
+                            </div>
+                          );
+                        }
+                      })()}
                     </div>
                   </div>
                 </motion.article>
@@ -426,8 +488,8 @@ export default function Ideas() {
           handleEdit(idea);
         }}
         onDelete={handleDeleteClick}
-        isAdmin={canApprove}
-        allowEdit={user?.username === selectedIdea?.username}
+        isAdmin={canApprove && selectedIdea?.status === 'Pending'}
+        allowEdit={user?.username === selectedIdea?.username && selectedIdea?.status === 'Pending'}
       />
 
       <AssignContentModal 

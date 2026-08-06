@@ -18,6 +18,10 @@ interface IdeaDetailModalProps {
 export default function IdeaDetailModal({ isOpen, onClose, idea, onEdit, onDelete, isAdmin,allowEdit }: IdeaDetailModalProps) {
   if (!idea) return null;
 
+  const displayStatus = idea.status === 'Approved' && (idea.blog_assignee || idea.video_assignee)
+    ? 'Assigned'
+    : idea.status;
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -38,11 +42,12 @@ export default function IdeaDetailModal({ isOpen, onClose, idea, onEdit, onDelet
             <div className="flex justify-between items-start mb-8">
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                  idea.status === 'Approved' ? 'bg-green-500/10 text-green-600' : 
-                  idea.status === 'Rejected' ? 'bg-error/10 text-error' : 
+                  displayStatus === 'Approved' ? 'bg-green-500/10 text-green-600' : 
+                  displayStatus === 'Assigned' ? 'bg-blue-500/10 text-blue-600' : 
+                  displayStatus === 'Rejected' ? 'bg-error/10 text-error' : 
                   'bg-amber-500/10 text-amber-600'
                 }`}>
-                  {idea.status === 'Approved' ? <CheckCircle2 size={24} /> : <Lightbulb size={24} />}
+                  {displayStatus === 'Approved' || displayStatus === 'Assigned' ? <CheckCircle2 size={24} /> : <Lightbulb size={24} />}
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold tracking-tight text-on-surface">{idea.title}</h3>
@@ -107,11 +112,12 @@ export default function IdeaDetailModal({ isOpen, onClose, idea, onEdit, onDelet
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">Status:</span>
                   <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                    idea.status === 'Approved' ? 'bg-green-100 text-green-700' : 
-                    idea.status === 'Rejected' ? 'bg-red-100 text-red-700' : 
+                    displayStatus === 'Approved' ? 'bg-green-100 text-green-700' : 
+                    displayStatus === 'Assigned' ? 'bg-blue-100 text-blue-700' : 
+                    displayStatus === 'Rejected' ? 'bg-red-100 text-red-700' : 
                     'bg-amber-100 text-amber-700'
                   }`}>
-                    {idea.status}
+                    {displayStatus}
                   </span>
                 </div>
 

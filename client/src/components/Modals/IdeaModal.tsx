@@ -29,6 +29,8 @@ export default function IdeaModal({ isOpen, onClose, ideaToEdit }: IdeaModalProp
     blog_assignee: null,
     video_assignee: null,
     tags: [],
+    year: new Date().getFullYear(),
+    quarter: `Q${Math.floor(new Date().getMonth() / 3) + 1}`,
   });
 
   useEffect(() => {
@@ -43,6 +45,8 @@ export default function IdeaModal({ isOpen, onClose, ideaToEdit }: IdeaModalProp
         blog_assignee: ideaToEdit.blog_assignee || null,
         video_assignee: ideaToEdit.video_assignee || null,
         tags: ideaToEdit.tags || [],
+        year: ideaToEdit.year,
+        quarter: ideaToEdit.quarter,
       });
     } else {
       setFormData({
@@ -55,6 +59,8 @@ export default function IdeaModal({ isOpen, onClose, ideaToEdit }: IdeaModalProp
         blog_assignee: null,
         video_assignee: null,
         tags: [],
+        year: new Date().getFullYear(),
+        quarter: `Q${Math.floor(new Date().getMonth() / 3) + 1}`,
       });
     }
   }, [ideaToEdit, isOpen, user]);

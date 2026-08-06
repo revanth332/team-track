@@ -59,9 +59,10 @@ export default function GoalsTracker() {
   const { user } = useAuth();
   
   const currentYear = new Date().getFullYear();
+  const currentQuarter = `Q${Math.floor(new Date().getMonth() / 3) + 1}`;
   const [filters, setFilters] = useState({
     year: currentYear.toString(),
-    quarter: 'Q2',
+    quarter: currentQuarter,
     type: 'all' as 'all' | 'blog' | 'video'
   });
 

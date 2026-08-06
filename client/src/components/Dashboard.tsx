@@ -75,21 +75,18 @@ export default function Dashboard() {
 
   const filteredGoals = goals || [];
   
-  const [tableYear, setTableYear] = useState<string>(new Date().getFullYear().toString());
-  const [tableQuarter, setTableQuarter] = useState<string>(`Q${Math.floor(new Date().getMonth() / 3) + 1}`);
   const [tableSearch, setTableSearch] = useState<string>('');
   const [tablePage, setTablePage] = useState(1);
   const itemsPerPage = 15;
 
   const tableFilteredGoals = filteredGoals.filter(goal => {
-    const matchesYear = goal.year.toString() === tableYear;
-    const matchesQuarter = goal.quarter === tableQuarter;
+    const isIncomplete = !['Completed', 'Canceled'].includes(goal.status);
     const matchesSearch = tableSearch === '' || 
       goal.assignee?.toLowerCase().includes(tableSearch.toLowerCase()) ||
       goal.title?.toLowerCase().includes(tableSearch.toLowerCase()) ||
       goal.assignee_username?.toLowerCase().includes(tableSearch.toLowerCase());
     
-    return matchesYear && matchesQuarter && matchesSearch;
+    return isIncomplete && matchesSearch;
   });
 
   const totalTablePages = Math.ceil(tableFilteredGoals.length / itemsPerPage);
@@ -579,34 +576,6 @@ export default function Dashboard() {
             </h4>
             
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-              {/* Year Filter */}
-              <select 
-                value={tableYear}
-                onChange={(e) => {
-                  setTableYear(e.target.value);
-                  setTablePage(1);
-                }}
-                className="bg-surface-container-low border-none rounded-xl px-3 py-2 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/10 outline-none"
-              >
-                {yearsList.map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-
-              {/* Quarter Filter */}
-              <select 
-                value={tableQuarter}
-                onChange={(e) => {
-                  setTableQuarter(e.target.value);
-                  setTablePage(1);
-                }}
-                className="bg-surface-container-low border-none rounded-xl px-3 py-2 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/10 outline-none"
-              >
-                {['Q1', 'Q2', 'Q3', 'Q4'].map(q => (
-                  <option key={q} value={q}>{q}</option>
-                ))}
-              </select>
-
               {/* Username Search */}
               <div className="relative group">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40" />
