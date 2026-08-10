@@ -1,17 +1,14 @@
 import os
 import time
-import requests
-from fastapi import FastAPI
-from dotenv import load_dotenv
-    # app/core/security.py
+import asyncio
 import jwt
 from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
 from app.core.config import settings
+from app.core.http_client import get_http_client
 
 # Load environment variables from .env
 load_dotenv()
-
-app = FastAPI(title="Zoho Sheet Integration API")
 
 # Configuration from environment
 ZOHO_CLIENT_ID = os.getenv("ZOHO_CLIENT_ID")
@@ -24,32 +21,45 @@ class TokenManager:
     def __init__(self):
         self.access_token = None
         self.expires_at = 0
+        self._lock = None
 
-    def get_zoho_token(self) -> str:
+    async def get_zoho_token(self) -> str:
         # Return cached token if it is still valid
-        if time.time() < self.expires_at:
+        if self.access_token and time.time() < self.expires_at:
             return self.access_token
         
-        # Otherwise, request a new access token
-        url = f"https://accounts.zoho.{ZOHO_DOMAIN}/oauth/v2/token"
-        payload = {
-            "refresh_token": ZOHO_REFRESH_TOKEN,
-            "client_id": ZOHO_CLIENT_ID,
-            "client_secret": ZOHO_CLIENT_SECRET,
-            "grant_type": "refresh_token"
-        }
-        
-        response = requests.post(url, data=payload,verify=False)
-        response_data = response.json()
-        
-        if "access_token" in response_data:
-            self.access_token = response_data["access_token"]
-            # Zoho tokens usually expire in 3600 seconds. 
-            # We subtract 60 seconds as a safe buffer.
-            self.expires_at = time.time() + response_data.get("expires_in", 3600) - 60
-            return self.access_token
-        else:
-            raise Exception(f"Failed to refresh token: {response_data}")
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+            
+        async with self._lock:
+            # Re-check inside lock
+            if self.access_token and time.time() < self.expires_at:
+                return self.access_token
+            # Otherwise, request a new access token
+            url = f"https://accounts.zoho.{ZOHO_DOMAIN}/oauth/v2/token"
+            payload = {
+                "refresh_token": ZOHO_REFRESH_TOKEN,
+                "client_id": ZOHO_CLIENT_ID,
+                "client_secret": ZOHO_CLIENT_SECRET,
+                "grant_type": "refresh_token"
+            }
+            
+            client = get_http_client()
+            response = await client.post(url, data=payload)
+            
+            if response.status_code != 200:
+                raise Exception(f"Failed to refresh token, HTTP status {response.status_code}: {response.text}")
+                
+            response_data = response.json()
+            
+            if "access_token" in response_data:
+                self.access_token = response_data["access_token"]
+                # Zoho tokens usually expire in 3600 seconds. 
+                # We subtract 60 seconds as a safe buffer.
+                self.expires_at = time.time() + response_data.get("expires_in", 3600) - 60
+                return self.access_token
+            else:
+                raise Exception(f"Failed to refresh token: {response_data}")
 
 
     def get_jwt_token(self,data: dict):
@@ -63,4 +73,6 @@ class TokenManager:
         # Generate the JWT token string
         encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
         return encoded_jwt
+
+token_manager = TokenManager()
 

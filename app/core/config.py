@@ -30,6 +30,8 @@ class Settings(BaseSettings):
         "http://localhost:5173", # Vite default
     ]
 
+    SSL_VERIFY: bool | str = True
+
     # Tells Pydantic to read from a .env file
     model_config = SettingsConfigDict(
         env_file=".env", 

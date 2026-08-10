@@ -1,15 +1,25 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.http_client import close_http_client
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Nothing to pre-initialize
+    yield
+    # Shutdown: Cleanly close the shared connection pool
+    await close_http_client()
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    version=settings.VERSION
+    version=settings.VERSION,
+    lifespan=lifespan
 )
 
 # Set up CORS (Important for production)

@@ -134,7 +134,7 @@ class SheetResolverTests(unittest.IsolatedAsyncioTestCase):
             "shift_sheet_name": "Resolved Sheet",
         })
         manager = Mock()
-        manager.fetch_records.return_value = []
+        manager.fetch_records = AsyncMock(return_value=[])
 
         with (
             patch.object(sheet_service, "get_database", return_value=db),
@@ -156,7 +156,7 @@ class SheetResolverTests(unittest.IsolatedAsyncioTestCase):
         })
         manager = Mock()
         manager.worksheet_name = "Resolved Sheet"
-        manager.fetch_records.return_value = [
+        manager.fetch_records = AsyncMock(return_value=[
             {
                 "#": 1,
                 "Employee Name": "Valid Employee",
@@ -175,7 +175,7 @@ class SheetResolverTests(unittest.IsolatedAsyncioTestCase):
                 "Date": "2026-06-21",
                 "Resolved Sheet\nLead Approval\nYes/No": "Approved",
             },
-        ]
+        ])
 
         with (
             patch.object(sheet_service, "get_database", return_value=db),
@@ -198,7 +198,7 @@ class SheetResolverTests(unittest.IsolatedAsyncioTestCase):
         })
         manager = Mock()
         manager.worksheet_name = "Resolved Sheet"
-        manager.fetch_records.return_value = []
+        manager.fetch_records = AsyncMock(return_value=[])
 
         with (
             patch.object(sheet_service, "get_database", return_value=db),
@@ -209,7 +209,7 @@ class SheetResolverTests(unittest.IsolatedAsyncioTestCase):
                 {"username": "lead1", "position": "lead"},
             )
 
-        manager.fetch_records.assert_called_once_with(
+        manager.fetch_records.assert_awaited_once_with(
             header_row=1,
             criteria='("Resolved Sheet\nLead Approval\nYes/No" = "")',
             page=1,

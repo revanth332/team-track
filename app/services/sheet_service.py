@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from app.core.database import get_database
 from app.schemas.sheet import CreateSheetRequest, GetSheetRequest, UpdateSheetRequest
 from app.services.shift_service import lead_approval_field, shift_helper
-from app.services.zoho_sheet_manager import ZohoSheetManager
+from app.services.zoho_sheet_manager import ZohoAPIError, ZohoSheetManager
 
 
 STATIC_FIELD_MAPPING = {
@@ -193,16 +193,36 @@ async def add_row_zoho_sheet(request: CreateSheetRequest, current_user: dict, le
     date = shift_record.get("Date")
     criteria = _record_identity_criteria(name, date)
 
-    if sheet_manager.fetch_records(header_row=1, criteria=criteria):
+    try:
+        existing_records = await sheet_manager.fetch_records(header_row=1, criteria=criteria)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except ZohoAPIError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
+
+    if existing_records:
         raise HTTPException(
             status_code=400,
             detail=f"Duplicate record exists for Employee Name {name} on {date}",
         )
 
-    rows = sheet_manager.fetch_records()
+    try:
+        rows = await sheet_manager.fetch_records(per_page=1000)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except ZohoAPIError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
+
     shift_record["#"] = _next_row_id(rows)
 
-    return {"status": "success", "info": sheet_manager.add_records([shift_record], header_row=1)}
+    try:
+        add_result = await sheet_manager.add_records([shift_record], header_row=1)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except ZohoAPIError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
+
+    return {"status": "success", "info": add_result}
 
 
 async def get_zoho_sheet_data(request: GetSheetRequest, current_user: dict, lead_id: str = None):
@@ -210,12 +230,18 @@ async def get_zoho_sheet_data(request: GetSheetRequest, current_user: dict, lead
     Fetch records from Zoho Sheet and return normalized shift objects.
     """
     sheet_manager = await _sheet_manager_for_user(current_user, lead_id)
-    records = sheet_manager.fetch_records(
-        header_row=request.header_row,
-        criteria=_build_fetch_criteria(request, sheet_manager.worksheet_name),
-        page=request.page,
-        per_page=request.per_page,
-    )
+    try:
+        records = await sheet_manager.fetch_records(
+            header_row=request.header_row,
+            criteria=_build_fetch_criteria(request, sheet_manager.worksheet_name),
+            page=request.page,
+            per_page=request.per_page,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except ZohoAPIError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
+
     valid_records = [
         record
         for record in records
@@ -246,12 +272,17 @@ async def update_row_zoho_sheet(
     """
     sheet_manager = await _sheet_manager_for_user(current_user, lead_id)
     shift_record = _shift_record_from_request(request, sheet_manager.worksheet_name)
-    return sheet_manager.update_records(
-        shift_record,
-        criteria=_record_identity_criteria(name, date),
-        header_row=request.header_row,
-        first_match_only=True,
-    )
+    try:
+        return await sheet_manager.update_records(
+            shift_record,
+            criteria=_record_identity_criteria(name, date),
+            header_row=request.header_row,
+            first_match_only=True,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except ZohoAPIError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
 
 async def delete_row_zoho_sheet(
@@ -265,8 +296,13 @@ async def delete_row_zoho_sheet(
         raise HTTPException(status_code=403, detail="Only leads and managers can delete shift records")
 
     sheet_manager = await _sheet_manager_for_user(current_user, lead_id)
-    return sheet_manager.delete_records(
-        criteria=_record_identity_criteria(name, date),
-        delete_rows=True,
-        first_match_only=True,
-    )
+    try:
+        return await sheet_manager.delete_records(
+            criteria=_record_identity_criteria(name, date),
+            delete_rows=True,
+            first_match_only=True,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except ZohoAPIError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
