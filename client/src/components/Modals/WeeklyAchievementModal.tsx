@@ -22,7 +22,15 @@ export default function WeeklyAchievementModal({ isOpen, onClose, initialData }:
   const [formData, setFormData] = useState<{
     week: string;
     occupancy: number;
-    projects: { project_name: string; client: string; role: string; task_description: string }[];
+    projects: { 
+      project_name: string; 
+      client: string; 
+      role: string; 
+      task_description: string;
+      remarks_risks_dependencies?: string;
+      accomplishments_highlights?: string;
+      business_impact?: string;
+    }[];
   }>({
     week: getDefaultWeek(),
     occupancy: 0,
@@ -67,7 +75,10 @@ export default function WeeklyAchievementModal({ isOpen, onClose, initialData }:
           project_name: p.project_name || '',
           client: p.client || '',
           role: (p as any).role || '',
-          task_description: p.task_description || ''
+          task_description: p.task_description || '',
+          remarks_risks_dependencies: p.remarks_risks_dependencies || '',
+          accomplishments_highlights: p.accomplishments_highlights || '',
+          business_impact: p.business_impact || ''
         }))
       });
     } else {
@@ -131,7 +142,10 @@ export default function WeeklyAchievementModal({ isOpen, onClose, initialData }:
           project_name: proj.title,
           client: proj.client || '',
           role: proj.role || '',
-          task_description: ''
+          task_description: '',
+          remarks_risks_dependencies: '',
+          accomplishments_highlights: '',
+          business_impact: ''
         }
       ];
       const newOccupancy = Math.min(100, formData.occupancy + proj.occupancy);
@@ -143,11 +157,37 @@ export default function WeeklyAchievementModal({ isOpen, onClose, initialData }:
     }
   };
 
-  const updateProject = (index: number, field: 'task_description', value: string) => {
+  const updateProject = (
+    index: number, 
+    field: 'task_description' | 'remarks_risks_dependencies' | 'accomplishments_highlights' | 'business_impact', 
+    value: string
+  ) => {
     const newProjects = [...formData.projects];
     newProjects[index] = { ...newProjects[index], [field]: value };
     setFormData({ ...formData, projects: newProjects });
   };
+
+  const isFormValid = (() => {
+    if (!formData.week) return false;
+    if (formData.occupancy === undefined || formData.occupancy === null || formData.occupancy <= 0) return false;
+    if (formData.projects.length === 0) return false;
+
+    return formData.projects.every(p => {
+      const cleanTaskDesc = p.task_description
+        ? p.task_description.replace(/<[^>]*>/g, '').trim()
+        : '';
+      const cleanRemarks = (p.remarks_risks_dependencies || '').trim();
+      const cleanAccomplishments = (p.accomplishments_highlights || '').trim();
+      const cleanImpact = (p.business_impact || '').trim();
+
+      return (
+        cleanTaskDesc.length > 0 &&
+        cleanRemarks.length > 0 &&
+        cleanAccomplishments.length > 0 &&
+        cleanImpact.length > 0
+      );
+    });
+  })();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,12 +250,14 @@ export default function WeeklyAchievementModal({ isOpen, onClose, initialData }:
               {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 px-1">Occupancy (%)</label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 px-1">
+                    Occupancy (%) <span className="text-error font-bold ml-0.5 text-[15px]">*</span>
+                  </label>
                   <div className="relative group">
                     <Percent className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within/field:text-primary transition-colors" size={18} />
                     <input 
                       type="number"
-                      min="0"
+                      min="1"
                       max="100"
                       required
                       placeholder="100"
@@ -226,7 +268,9 @@ export default function WeeklyAchievementModal({ isOpen, onClose, initialData }:
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 px-1">Select Week</label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 px-1">
+                    Select Week <span className="text-error font-bold ml-0.5 text-[15px]">*</span>
+                  </label>
                   <div className="relative group">
                     <label className="relative block cursor-pointer">
                       <div className="w-full bg-surface-container-low/50 border-none rounded-2xl pl-12 pr-4 py-3.5 text-sm focus:ring-2 focus:ring-primary/10 outline-none transition-all font-medium text-left flex items-center group-hover:bg-surface-container transition-colors">
@@ -366,13 +410,56 @@ export default function WeeklyAchievementModal({ isOpen, onClose, initialData }:
                         </div>
                       </div>
 
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 px-1">Task Description</label>
-                        <RichTextEditor 
-                          value={project.task_description} 
-                          onChange={(val) => updateProject(index, 'task_description', val)}
-                          placeholder="What did you work on for this project?"
-                        />
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 px-1">
+                            Key Contributions / Work Done <span className="text-error font-bold ml-0.5 text-[15px]">*</span>
+                          </label>
+                          <RichTextEditor 
+                            value={project.task_description} 
+                            onChange={(val) => updateProject(index, 'task_description', val)}
+                            placeholder="What did you work on for this project?"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 px-1">
+                            Remarks / Risks / Dependencies <span className="text-error font-bold ml-0.5 text-[15px]">*</span>
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={project.remarks_risks_dependencies || ''}
+                            onChange={(e) => updateProject(index, 'remarks_risks_dependencies', e.target.value)}
+                            placeholder="Any risks, blockers, or dependencies?"
+                            className="w-full bg-surface-container-low/50 border border-outline-variant/10 rounded-2xl p-3.5 text-sm focus:ring-2 focus:ring-primary/10 outline-none transition-all font-medium resize-none text-on-surface"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 px-1">
+                            Accomplishments / Highlights <span className="text-error font-bold ml-0.5 text-[15px]">*</span>
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={project.accomplishments_highlights || ''}
+                            onChange={(e) => updateProject(index, 'accomplishments_highlights', e.target.value)}
+                            placeholder="Key milestones or achievements for this week"
+                            className="w-full bg-surface-container-low/50 border border-outline-variant/10 rounded-2xl p-3.5 text-sm focus:ring-2 focus:ring-primary/10 outline-none transition-all font-medium resize-none text-on-surface"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 px-1">
+                            Business Impact <span className="text-error font-bold ml-0.5 text-[15px]">*</span>
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={project.business_impact || ''}
+                            onChange={(e) => updateProject(index, 'business_impact', e.target.value)}
+                            placeholder="Describe the business value or impact created"
+                            className="w-full bg-surface-container-low/50 border border-outline-variant/10 rounded-2xl p-3.5 text-sm focus:ring-2 focus:ring-primary/10 outline-none transition-all font-medium resize-none text-on-surface"
+                          />
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -384,23 +471,38 @@ export default function WeeklyAchievementModal({ isOpen, onClose, initialData }:
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-4 pt-4 border-t border-outline-variant/5 shrink-0">
-                <button 
-                  type="button"
-                  disabled={mutation.isPending}
-                  onClick={onClose}
-                  className="px-6 py-3 text-sm font-bold text-on-surface-variant hover:bg-surface-container-low rounded-2xl transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  disabled={mutation.isPending}
-                  className="primary-gradient text-on-primary px-10 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform flex items-center gap-2 disabled:opacity-50"
-                >
-                  {mutation.isPending && <Loader2 className="animate-spin" size={16} />}
-                  <span>{mutation.isPending ? (initialData ? 'Updating...' : 'Posting...') : (initialData ? 'Update Weekly Update' : 'Post Weekly Update')}</span>
-                </button>
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-outline-variant/5 shrink-0">
+                <div className="text-[11px] font-semibold text-on-surface-variant/70">
+                  {!isFormValid && formData.projects.length > 0 && (
+                    <span className="text-error flex items-center gap-1">
+                      <AlertIcon size={14} />
+                      <span>All fields marked with (*) are required for every selected project.</span>
+                    </span>
+                  )}
+                  {formData.projects.length === 0 && (
+                    <span className="text-on-surface-variant/50 italic">
+                      Select at least one active project to continue.
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
+                  <button 
+                    type="button"
+                    disabled={mutation.isPending}
+                    onClick={onClose}
+                    className="px-6 py-3 text-sm font-bold text-on-surface-variant hover:bg-surface-container-low rounded-2xl transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={mutation.isPending || !isFormValid}
+                    className="primary-gradient text-on-primary px-10 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
+                  >
+                    {mutation.isPending && <Loader2 className="animate-spin" size={16} />}
+                    <span>{mutation.isPending ? (initialData ? 'Updating...' : 'Posting...') : (initialData ? 'Update' : 'Post')}</span>
+                  </button>
+                </div>
               </div>
             </form>
           </motion.div>

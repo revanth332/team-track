@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { ChevronRight, Calendar, Plus, Edit, Hand, Briefcase, Layout, Percent, Loader2, AlertCircle, Trash2, ThumbsUp, Check, CheckCheck } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ChevronRight, Calendar, Plus, Edit, Hand, Briefcase, Layout, Percent, Loader2, AlertCircle, Trash2, ThumbsUp, Check, CheckCheck, Download, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFilter } from '../context/FilterContext';
 import { weeklyUpdateService } from '../services/api';
 import { getProfileImage } from '../utils/userUtils';
 import { getWeekString, getMondayFromWeek, getFridayFromWeek, getDefaultWeek, getWeekLabel } from '../utils/dateUtils';
+import { formatWeeklyUpdatesToText, formatBiweeklyUpdatesToText, getPreviousWeekString } from '../utils/exportUtils';
 import { WeeklyUpdateApi } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -14,6 +15,7 @@ import { TableSkeleton } from './ui/Skeleton';
 import WeeklyAchievementModal from './Modals/WeeklyAchievementModal';
 import WeeklyUpdateDetailModal from './Modals/WeeklyUpdateDetailModal';
 import ConfirmationModal from './Modals/ConfirmationModal';
+import ExportPreviewModal from './Modals/ExportPreviewModal';
 
 interface WeeklyUpdatesProps {
   onAddUpdate: () => void;
@@ -33,12 +35,35 @@ export default function WeeklyUpdates({ onAddUpdate }: WeeklyUpdatesProps) {
     week: getDefaultWeek()
   });
 
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportPreviewData, setExportPreviewData] = useState<{
+    title: string;
+    subtitle: string;
+    formattedText: string;
+  }>({ title: '', subtitle: '', formattedText: '' });
+
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setIsExportMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const weekEndDate = getFridayFromWeek(filters.week);
 
   const { data: updates, isLoading, isError } = useQuery({
     queryKey: ['weekly-updates', { week_end_date: weekEndDate, name: selectedAssignee?.name }],
     queryFn: () => weeklyUpdateService.getUpdates({ week_end_date: weekEndDate, name: selectedAssignee?.name || undefined }),
   });
+
+  const updatesToDisplay = updates || [];
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => weeklyUpdateService.deleteUpdate(id),
@@ -80,7 +105,51 @@ export default function WeeklyUpdates({ onAddUpdate }: WeeklyUpdatesProps) {
     }
   };
 
-  const updatesToDisplay = updates || [];
+  const handleWeeklyExport = () => {
+    setIsExportMenuOpen(false);
+    const text = formatWeeklyUpdatesToText(updatesToDisplay);
+    const weekLabel = getWeekLabel(filters.week);
+    setExportPreviewData({
+      title: 'Weekly Updates Export',
+      subtitle: `Week ${filters.week} (${weekLabel})`,
+      formattedText: text,
+    });
+    setIsExportModalOpen(true);
+  };
+
+  const handleBiweeklyExport = async () => {
+    setIsExportMenuOpen(false);
+    setIsExporting(true);
+    try {
+      const prevWeekStr = getPreviousWeekString(filters.week);
+      const prevWeekFriday = getFridayFromWeek(prevWeekStr);
+      const prevUpdates = await weeklyUpdateService.getUpdates({
+        week_end_date: prevWeekFriday,
+        name: selectedAssignee?.name || undefined
+      });
+
+      const currLabel = getWeekLabel(filters.week);
+      const prevLabel = getWeekLabel(prevWeekStr);
+
+      const text = formatBiweeklyUpdatesToText(
+        updatesToDisplay,
+        prevUpdates || [],
+        currLabel,
+        prevLabel
+      );
+
+      setExportPreviewData({
+        title: 'Biweekly Updates Export',
+        subtitle: `Weeks ${prevWeekStr} & ${filters.week} (${prevLabel} – ${currLabel})`,
+        formattedText: text,
+      });
+      setIsExportModalOpen(true);
+    } catch (err: any) {
+      showToast('Failed to fetch previous week updates for biweekly export', 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleEdit = (update: WeeklyUpdateApi) => {
     setSelectedUpdate(update);
@@ -136,13 +205,73 @@ export default function WeeklyUpdates({ onAddUpdate }: WeeklyUpdatesProps) {
               </div>
             </div>
           </div>
-          <button 
-            onClick={onAddUpdate}
-            className="primary-gradient text-on-primary px-6 py-3 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform w-full lg:w-auto"
-          >
-            <Plus size={20} />
-            <span>Add My Update</span>
-          </button>
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            {/* Export Dropdown */}
+            <div className="relative" ref={exportMenuRef}>
+              <button
+                type="button"
+                disabled={isExporting}
+                onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                className="bg-surface-container-low hover:bg-surface-container border border-outline-variant/10 text-on-surface px-5 py-3 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm shadow-sm transition-all disabled:opacity-50"
+              >
+                {isExporting ? <Loader2 size={18} className="animate-spin text-primary" /> : <Download size={18} className="text-primary" />}
+                <span>Export</span>
+              </button>
+
+              <AnimatePresence>
+                {isExportMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-outline-variant/10 py-2 z-50 overflow-hidden"
+                  >
+                    <div className="px-4 py-2 border-b border-outline-variant/5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/60">
+                      Export Format Options
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleWeeklyExport}
+                      className="w-full px-4 py-3 text-left hover:bg-surface-container-low flex items-start gap-3 transition-colors group"
+                    >
+                      <FileText size={18} className="text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <span className="block font-bold text-xs text-on-surface group-hover:text-primary transition-colors">
+                          Weekly Export
+                        </span>
+                        <span className="block text-[10px] text-on-surface-variant/70 mt-0.5">
+                          Updates for selected week only
+                        </span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleBiweeklyExport}
+                      className="w-full px-4 py-3 text-left hover:bg-surface-container-low flex items-start gap-3 transition-colors group border-t border-outline-variant/5"
+                    >
+                      <FileText size={18} className="text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <span className="block font-bold text-xs text-on-surface group-hover:text-primary transition-colors">
+                          Biweekly Export
+                        </span>
+                        <span className="block text-[10px] text-on-surface-variant/70 mt-0.5">
+                          Combines selected & previous week
+                        </span>
+                      </div>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <button 
+              onClick={onAddUpdate}
+              className="primary-gradient text-on-primary px-6 py-3 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform flex-1 sm:flex-none"
+            >
+              <Plus size={20} />
+              <span>Add My Update</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -304,6 +433,14 @@ export default function WeeklyUpdates({ onAddUpdate }: WeeklyUpdatesProps) {
         message="Are you sure you want to delete this weekly update? This action cannot be undone."
         confirmText="Delete"
         isLoading={deleteMutation.isPending}
+      />
+
+      <ExportPreviewModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title={exportPreviewData.title}
+        subtitle={exportPreviewData.subtitle}
+        formattedText={exportPreviewData.formattedText}
       />
     </div>
   );

@@ -118,10 +118,36 @@ export default function WeeklyUpdateDetailModal({
                           <span>{project.client}</span>
                         </div>
                       </div>
-                      <div 
-                        className="prose prose-sm max-w-none text-on-surface-variant font-medium leading-relaxed markdown-body"
-                        dangerouslySetInnerHTML={{ __html: project.task_description }}
-                      />
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/60 block mb-1">Key Contributions / Work Done</span>
+                          <div 
+                            className="prose prose-sm max-w-none text-on-surface-variant font-medium leading-relaxed markdown-body"
+                            dangerouslySetInnerHTML={{ __html: project.task_description }}
+                          />
+                        </div>
+
+                        {project.remarks_risks_dependencies && (
+                          <div className="pt-2 border-t border-outline-variant/10">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/60 block mb-1">Remarks / Risks / Dependencies</span>
+                            <p className="text-xs text-on-surface-variant font-medium whitespace-pre-wrap">{project.remarks_risks_dependencies}</p>
+                          </div>
+                        )}
+
+                        {project.accomplishments_highlights && (
+                          <div className="pt-2 border-t border-outline-variant/10">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/60 block mb-1">Accomplishments / Highlights</span>
+                            <p className="text-xs text-on-surface-variant font-medium whitespace-pre-wrap">{project.accomplishments_highlights}</p>
+                          </div>
+                        )}
+
+                        {project.business_impact && (
+                          <div className="pt-2 border-t border-outline-variant/10">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/60 block mb-1">Business Impact</span>
+                            <p className="text-xs text-on-surface-variant font-medium whitespace-pre-wrap">{project.business_impact}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

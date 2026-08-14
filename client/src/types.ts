@@ -177,6 +177,9 @@ export interface WeeklyUpdateProjectInfo {
   project_name: string;
   task_description: string;
   role: string;
+  remarks_risks_dependencies?: string;
+  accomplishments_highlights?: string;
+  business_impact?: string;
 }
 
 export interface WeeklyUpdateApi {
