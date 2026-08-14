@@ -18,6 +18,11 @@ def normalize_projects(projects, fallback_role=None) -> list[dict]:
         project_data = dict(project)
         if project_data.get("role") is None and fallback_role is not None:
             project_data["role"] = fallback_role
+
+        project_data["remarks_risks_dependencies"] = project_data.get("remarks_risks_dependencies") or ""
+        project_data["accomplishments_highlights"] = project_data.get("accomplishments_highlights") or ""
+        project_data["business_impact"] = project_data.get("business_impact") or ""
+
         normalized_projects.append(project_data)
 
     return normalized_projects
@@ -29,7 +34,7 @@ def update_helper(update_doc) -> dict:
         "username": update_doc.get("username"),
         "week_end_date": update_doc.get("week_end_date"),
         "projects": normalize_projects(update_doc.get("projects"), update_doc.get("role")),
-        "occupancy":update_doc.get("occupancy"),
+        "occupancy": update_doc.get("occupancy") if update_doc.get("occupancy") is not None else 0.0,
         "created_at": update_doc.get("created_at"),
         "seen_by_lead": update_doc.get("seen_by_lead", False),
         "lead_id": update_doc.get("lead_id"),

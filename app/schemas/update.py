@@ -3,6 +3,15 @@ from typing import Optional, List
 from datetime import date, datetime
 
 class ProjectInfo(BaseModel):
+    project_name: str
+    client: str
+    role: Optional[str] = Field(default=None, example="Frontend Engineer")
+    task_description: str
+    remarks_risks_dependencies: Optional[str] = Field(default="", example="None")
+    accomplishments_highlights: Optional[str] = Field(default="", example="Completed phase 1")
+    business_impact: Optional[str] = Field(default="", example="Improved performance by 20%")
+
+class ProjectInfoCreate(BaseModel):
     project_name: str = Field(..., min_length=1)
     client: str = Field(..., min_length=1)
     role: Optional[str] = Field(default=None, example="Frontend Engineer")
@@ -15,7 +24,6 @@ class ProjectInfo(BaseModel):
     @classmethod
     def validate_non_empty_text(cls, v):
         if isinstance(v, str):
-            # Clean HTML tags and whitespace to ensure actual content exists
             clean_text = v.replace('<p>', '').replace('</p>', '').replace('<br>', '').replace('<br/>', '').strip()
             if not clean_text:
                 raise ValueError("This field cannot be empty.")
@@ -26,7 +34,7 @@ class ProjectInfo(BaseModel):
 
 class WeeklyUpdateBase(BaseModel):
     name: str = Field(..., example="Jane Doe")
-    projects: List[ProjectInfo] = Field(..., min_length=1, example=[
+    projects: List[ProjectInfo] = Field(..., example=[
         {
             "project_name": "Project Alpha",
             "client": "Client Beta",
@@ -39,20 +47,21 @@ class WeeklyUpdateBase(BaseModel):
     ])
     week_end_date: date = Field(..., example="2026-04-06")
     username: str = Field(..., example="jane_doe")
-    occupancy: float = Field(..., ge=1, le=100, example=75)
+    occupancy: Optional[float] = Field(default=0.0, example=75)
     seen_by_lead: Optional[bool] = Field(default=False, example=True)
     lead_id: Optional[str] = Field(default=None, example="lead_username")
     manager_id: Optional[str] = Field(default=None, example="manager_username")
 
 class WeeklyUpdateCreate(WeeklyUpdateBase):
-    pass
+    projects: List[ProjectInfoCreate] = Field(..., min_length=1)
+    occupancy: float = Field(..., ge=1, le=100, example=75)
 
 class WeeklyUpdateModify(BaseModel):
     name: Optional[str] = None
     empid: Optional[str] = None
     week_end_date: Optional[date] = None
-    projects: Optional[List[ProjectInfo]] = None
-    occupancy: Optional[float] = None
+    projects: Optional[List[ProjectInfoCreate]] = None
+    occupancy: Optional[float] = Field(default=None, ge=1, le=100)
     seen_by_lead: Optional[bool] = None
 
 
