@@ -6,6 +6,7 @@ import { teamService } from '../services/api';
 import { UserCreate, TeamMember, ActiveProject } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import BandwidthMailModal from './Modals/BandwidthMailModal';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export default function Profile() {
   const [activeProjects, setActiveProjects] = useState<ActiveProject[]>([]);
   const [projectSearch, setProjectSearch] = useState('');
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [isMailModalOpen, setIsMailModalOpen] = useState(false);
   const [editingProjectIndex, setEditingProjectIndex] = useState<number | null>(null);
   const [projectForm, setProjectForm] = useState<ActiveProject>({
     title: '',
@@ -101,6 +103,17 @@ export default function Profile() {
     }
   });
 
+  const isBandwidthOutdated = React.useMemo(() => {
+    if (!currentUserData?.last_updated) return true;
+    try {
+      const lastUpdatedDate = new Date(currentUserData.last_updated).toDateString();
+      const todayDate = new Date().toDateString();
+      return lastUpdatedDate !== todayDate;
+    } catch {
+      return true;
+    }
+  }, [currentUserData?.last_updated]);
+
   const handleOpenAddProjectModal = () => {
     setProjectForm({
       title: '',
@@ -167,7 +180,9 @@ export default function Profile() {
     );
   }
 
-  const isLead = user?.position === 'lead';
+  const userPosition = (user?.position || currentUserData?.position || '').toLowerCase();
+  const isLead = userPosition === 'lead';
+  const isLeadUser = userPosition === 'lead' || userPosition === 'manager' || user?.role === 'admin';
   const totalOccupancy = activeProjects.reduce((sum, p) => sum + (p.is_active ? p.occupancy : 0), 0);
   const isOverOccupied = totalOccupancy > 100;
 
@@ -177,6 +192,21 @@ export default function Profile() {
         <h2 className="text-3xl font-bold tracking-tight text-on-surface">My Profile</h2>
         <p className="text-on-surface-variant font-medium">Manage your personal information, work schedule, and project portfolio.</p>
       </header>
+
+      {/* Outdated Bandwidth Warning Banner */}
+      {isBandwidthOutdated && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-3.5 text-amber-900 dark:text-amber-300 shadow-sm">
+          <div className="p-2.5 bg-amber-500/20 rounded-xl shrink-0 text-amber-600 dark:text-amber-400">
+            <AlertTriangle size={22} />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-bold">Bandwidth Information Outdated</h4>
+            <p className="text-xs font-medium opacity-90 mt-0.5">
+              Your bandwidth information is outdated. Please review your project portfolio and click <strong>Save Profile Changes</strong> to update your daily status.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Left column: Basic Info */}
@@ -204,6 +234,7 @@ export default function Profile() {
               </div>
               <h4 className="font-bold text-on-surface">Current Bandwidth</h4>
             </div>
+
             <div className="space-y-4">
               <div className="flex justify-between items-end">
                 <span className="text-3xl font-extrabold text-primary">{formData.bandwidth ?? 100}%</span>
@@ -221,6 +252,32 @@ export default function Profile() {
               </p>
             </div>
           </div>
+
+          {/* Daily Bandwidth Email Settings Card (Lead/Manager/Admin Only) */}
+          {isLeadUser && (
+            <div className="bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-outline-variant/10 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-on-surface text-sm">Daily Bandwidth Mailer</h4>
+                  <p className="text-[11px] text-on-surface-variant font-medium">Automated 5:00 PM IST Alert</p>
+                </div>
+              </div>
+              <p className="text-xs text-on-surface-variant/70 font-medium leading-relaxed">
+                Configure your Zoho credentials and receiver emails to automatically send daily bandwidth reports for your team at 5 PM.
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsMailModalOpen(true)}
+                className="w-full py-3 px-4 bg-primary hover:bg-primary-hover text-white rounded-2xl font-bold text-xs shadow-md shadow-primary/10 transition-all flex items-center justify-center gap-2 active:scale-95"
+              >
+                <Mail size={16} />
+                <span>Configure Mail Settings</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right column: Form */}
@@ -637,6 +694,11 @@ export default function Profile() {
           </motion.div>
         </div>
       )}
+      {/* Bandwidth Mail Settings Modal */}
+      <BandwidthMailModal
+        isOpen={isMailModalOpen}
+        onClose={() => setIsMailModalOpen(false)}
+      />
     </div>
   );
 }

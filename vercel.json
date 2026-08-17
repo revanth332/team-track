@@ -5,6 +5,12 @@
       "use": "@vercel/python"
     }
   ],
+  "crons": [
+    {
+      "path": "/api/v1/bandwidth/cron",
+      "schedule": "30 11 * * *"
+    }
+  ],
   "routes": [
     {
       "src": "/(.*)",

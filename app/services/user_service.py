@@ -9,7 +9,7 @@ from app.schemas.user import (
     UserRegister,
     UserUpdate,
 )
-from datetime import datetime
+from datetime import datetime, timezone
 from math import ceil
 from app.core.config import settings
 
@@ -125,6 +125,7 @@ def user_helper(user) -> dict:
         
         "skills": user.get("skills",[]),
         "birthday": user.get("birthday"),
+        "last_updated": user.get("last_updated"),
         "bandwidth": calculate_bandwidth(active_projects)
     }
 
@@ -438,6 +439,8 @@ async def update_user(user_id: str, data: UserUpdate):
         if should_clear_user_assignments:
             update_data["lead_id"] = None
             update_data["manager_id"] = None
+
+    update_data["last_updated"] = datetime.now(timezone.utc)
 
     if len(update_data) >= 1:
         updated_result = await db.users.update_one(

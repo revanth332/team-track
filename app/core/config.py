@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
     
+    # --- Cron & Encryption Settings ---
+    CRON_SECRET: str = "teamtrack_cron_secret_2026"
+    ENCRYPTION_KEY: str = ""
+    
     # --- CORS Settings ---
     # Allow the frontend (e.g., localhost:3000) to talk to the backend
     BACKEND_CORS_ORIGINS: List[str] = [

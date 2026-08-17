@@ -84,6 +84,7 @@ export interface TeamMember {
   skills: string[];
   birthday: string | null;
   shift_sheet_name?: string;
+  last_updated?: string;
 }
 
 export interface UserCreate {
@@ -279,4 +280,37 @@ export interface PaginatedResponse<T> {
   page: number;
   per_page: number;
   data: T[];
+}
+
+export interface BandwidthSettings {
+  lead_id: string;
+  is_enabled: boolean;
+  zoho_sender_email: string;
+  has_app_password: boolean;
+  zoho_server: string;
+  zoho_port: number;
+  recipient_emails: string[];
+  min_bandwidth_threshold: number;
+  updated_at?: string;
+  last_run_at?: string;
+  last_run_status?: string;
+  last_error?: string;
+}
+
+export interface BandwidthSettingsUpdate {
+  is_enabled?: boolean;
+  zoho_sender_email?: string;
+  zoho_app_password?: string;
+  zoho_server?: string;
+  zoho_port?: number;
+  recipient_emails?: string[];
+  min_bandwidth_threshold?: number;
+}
+
+export interface TestEmailRequest {
+  test_recipient_email?: string;
+  zoho_sender_email?: string;
+  zoho_app_password?: string;
+  zoho_server?: string;
+  zoho_port?: number;
 }

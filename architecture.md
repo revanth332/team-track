@@ -1,43 +1,37 @@
 Project architecture:
 
- An elegant layered architecture showing how the React Client makes REST requests to FastAPI, which utilizes a fully asynchronous pipeline consisting of the Sheet Service, the Zoho Sheet Manager, and a concurrency-locked Token Manager, all sharing a persistent HTTP AsyncClient from the central Network Utility layer to communicate with Zoho APIs. 
+ Layered architecture diagram of TeamTrack highlighting the multi-lead automated bandwidth alert system, showing how Vercel Cron or Team Leads trigger FastAPI endpoints, which evaluate team capacity in MongoDB, encrypt/decrypt Zoho credentials, and dispatch reports via Zoho SMTP. 
 
  ```mermaid
 graph TD
     subgraph ClientLayer [Client Layer]
-        C[Web Browser / React Client]
+        ReactClient[React Frontend - MyTeam UI]
+        VercelCron[Vercel Cron Scheduler - 5PM IST]
     end
 
     subgraph APILayer [FastAPI Routers]
-        M[main.py]
-        S_R[app/api/v1/shifts.py]
+        BandwidthRouter[app/api/v1/bandwidth.py]
     end
 
     subgraph ServiceLayer [Service Layer]
-        S_S[app/services/sheet_service.py]
+        BandwidthService[app/services/bandwidth_email_service.py]
+        UserService[app/services/user_service.py]
     end
 
-    subgraph ZohoIntegration [Zoho Integration]
-        Z_M[app/services/zoho_sheet_manager.py]
-        T_M[app/core/token_manager.py]
+    subgraph CoreLayer [Core Security & DB]
+        EncryptionCore[app/core/encryption.py]
+        MongoDB[(MongoDB Database)]
     end
 
-    subgraph NetworkUtilities [Central Network Layer]
-        H_C[app/core/http_client.py]
+    subgraph ExternalServices [External Email Gateway]
+        ZohoSMTP[Zoho SMTP Server]
     end
 
-    subgraph ExternalAPIs [External Zoho APIs]
-        Z_OAuth[Zoho OAuth Server]
-        Z_Sheet[Zoho Sheet API v2]
-    end
-
-    C -->|HTTP REST Requests| M
-    M -->|Routes to| S_R
-    S_R -->|Calls| S_S
-    S_S -->|Invokes Awaitable Methods| Z_M
-    Z_M -->|Awaits Access Token| T_M
-    Z_M -->|Acquires Shared Client| H_C
-    T_M -->|Acquires Shared Client| H_C
-    H_C -->|Async POST Request| Z_OAuth
-    H_C -->|Async CRUD Requests| Z_Sheet
+    ReactClient -->|Configure / Test Settings| BandwidthRouter
+    VercelCron -->|Daily Cron Request| BandwidthRouter
+    BandwidthRouter -->|Process Request| BandwidthService
+    BandwidthService -->|Fetch Team Members| UserService
+    BandwidthService -->|Query Settings & Users| MongoDB
+    BandwidthService -->|Encrypt / Decrypt Credentials| EncryptionCore
+    BandwidthService -->|Send Email Reports via SSL| ZohoSMTP
 ```

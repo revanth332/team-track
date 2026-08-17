@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
-import { TeamMember, UserCreate, UserRegister, Position, PaginatedUserResponse, ShiftLog, ShiftLogCreate, WeeklyUpdateApi, WeeklyUpdateApiCreate, Idea, IdeaCreate, LoginCredentials, LoginResponse, QuarterlyGoal, QuarterlyGoalCreate, Task, TaskCreate, TaskUpdate, TaskSubmission, TaskReview, PaginatedResponse } from '../types';
+import { TeamMember, UserCreate, UserRegister, Position, PaginatedUserResponse, ShiftLog, ShiftLogCreate, WeeklyUpdateApi, WeeklyUpdateApiCreate, Idea, IdeaCreate, LoginCredentials, LoginResponse, QuarterlyGoal, QuarterlyGoalCreate, Task, TaskCreate, TaskUpdate, TaskSubmission, TaskReview, PaginatedResponse, BandwidthSettings, BandwidthSettingsUpdate, TestEmailRequest } from '../types';
 
 const API_URL = (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, '');
 
@@ -283,5 +283,20 @@ export const goalService = {
   },
   deleteGoal: async (id: string): Promise<void> => {
     await api.delete(`/api/v1/goals/${id}`);
+  },
+};
+
+export const bandwidthService = {
+  getSettings: async (): Promise<BandwidthSettings> => {
+    const response = await api.get('/api/v1/bandwidth/settings');
+    return response.data;
+  },
+  updateSettings: async (settings: BandwidthSettingsUpdate): Promise<BandwidthSettings> => {
+    const response = await api.post('/api/v1/bandwidth/settings', settings);
+    return response.data;
+  },
+  testConnection: async (payload: TestEmailRequest): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post('/api/v1/bandwidth/test', payload);
+    return response.data;
   },
 };

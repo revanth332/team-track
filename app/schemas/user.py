@@ -1,6 +1,6 @@
 from pydantic import AliasChoices, BaseModel, Field, ConfigDict
 from typing import List, Optional
-from datetime import date, time
+from datetime import date, time, datetime
 
 class ActiveProject(BaseModel):
     title: str = Field(..., example="Project Alpha")
@@ -40,6 +40,7 @@ class UserBase(BaseModel):
     
     skills: List[str] = Field(default_factory=list, example=["React", "TypeScript"])
     birthday: Optional[date] = Field(default=None, example="1995-08-15")
+    last_updated: Optional[datetime] = Field(default=None, example="2023-08-15T12:00:00Z")
 
 # Schema for creating a user (POST)
 class UserCreate(UserBase):

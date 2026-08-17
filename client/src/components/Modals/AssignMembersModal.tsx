@@ -64,8 +64,6 @@ export default function AssignMembersModal({ isOpen, onClose }: AssignMembersMod
     });
   };
 
-  console.log(user)
-
   const filteredUsers = allUsers.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     u.username.toLowerCase().includes(searchTerm.toLowerCase())
