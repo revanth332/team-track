@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, status
 from typing import Optional
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.api.dependencies import get_current_user
 from app.core.config import settings
@@ -16,7 +17,7 @@ from app.services.bandwidth_email_service import (
 )
 
 router = APIRouter()
-
+security = HTTPBearer()
 
 @router.get("/settings", response_model=BandwidthSettingsResponse)
 async def get_settings(current_user: dict = Depends(get_current_user)):
@@ -71,26 +72,15 @@ async def trigger_test_email(
 
 
 @router.get("/cron")
-@router.post("/cron")
 async def execute_cron_bandwidth_job(
-    authorization: Optional[str] = Header(None, alias="Authorization"),
-    x_cron_secret: Optional[str] = Header(None, alias="X-Cron-Secret"),
-    x_vercel_cron: Optional[str] = Header(None, alias="X-Vercel-Cron"),
-    cron_secret: Optional[str] = Query(None)
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    provided_secret = x_cron_secret or cron_secret
-    if not provided_secret and authorization:
-        parts = authorization.split()
-        if len(parts) == 2 and parts[0].lower() == "bearer":
-            provided_secret = parts[1].strip()
+    provided_secret = credentials.credentials
 
     # Match against configured CRON_SECRET
     is_valid_secret = bool(provided_secret and settings.CRON_SECRET and provided_secret == settings.CRON_SECRET)
-    
-    # Check if request originated directly from Vercel Cron infrastructure
-    is_vercel_cron = x_vercel_cron is not None
 
-    if not is_valid_secret and not is_vercel_cron:
+    if not is_valid_secret:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing Cron Secret header."
