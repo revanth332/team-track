@@ -70,12 +70,17 @@ async def trigger_test_email(
     return result
 
 
+@router.get("/cron")
 @router.post("/cron")
 async def execute_cron_bandwidth_job(
+    authorization: Optional[str] = Header(None, alias="Authorization"),
     x_cron_secret: Optional[str] = Header(None, alias="X-Cron-Secret"),
     cron_secret: Optional[str] = Query(None)
 ):
     provided_secret = x_cron_secret or cron_secret
+    if not provided_secret and authorization and authorization.startswith("Bearer "):
+        provided_secret = authorization.replace("Bearer ", "").strip()
+
     if not provided_secret or provided_secret != settings.CRON_SECRET:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

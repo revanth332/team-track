@@ -232,7 +232,7 @@ async def send_zoho_bandwidth_email(
     html_content: str
 ):
     """
-    Sends an email via Zoho SMTP SSL securely using a thread pool to avoid blocking the async event loop.
+    Sends an email via Zoho SMTP SSL/TLS securely using a thread pool to avoid blocking the async event loop.
     """
     def _send():
         msg = MIMEMultipart("alternative")
@@ -241,10 +241,17 @@ async def send_zoho_bandwidth_email(
         msg["To"] = ", ".join(recipients)
         msg.attach(MIMEText(html_content, "html"))
 
-        # Zoho SMTP SSL Connection
-        with smtplib.SMTP_SSL(server, port, timeout=12) as mailer:
-            mailer.login(sender_email, app_password)
-            mailer.sendmail(sender_email, recipients, msg.as_string())
+        if port == 465:
+            with smtplib.SMTP_SSL(server, port, timeout=15) as mailer:
+                mailer.login(sender_email, app_password)
+                mailer.sendmail(sender_email, recipients, msg.as_string())
+        else:
+            with smtplib.SMTP(server, port, timeout=15) as mailer:
+                mailer.ehlo()
+                mailer.starttls()
+                mailer.ehlo()
+                mailer.login(sender_email, app_password)
+                mailer.sendmail(sender_email, recipients, msg.as_string())
 
     await asyncio.to_thread(_send)
 
@@ -326,8 +333,10 @@ async def process_daily_bandwidth_emails() -> Dict[str, Any]:
     enabled_cursor = db.bandwidth_settings.find({"is_enabled": True})
     
     results = []
+    settings_count = 0
     
     async for setting in enabled_cursor:
+        settings_count += 1
         lead_id = setting["lead_id"]
         lead_user = await db.users.find_one({"username": lead_id})
         lead_name = lead_user.get("name") if lead_user else lead_id
@@ -341,23 +350,28 @@ async def process_daily_bandwidth_emails() -> Dict[str, Any]:
         
         now = datetime.now(timezone.utc)
 
+        print(f"[CRON] Processing team lead: {lead_id} (enabled=True)")
+
         # Basic verification
         if not sender_email or not encrypted_pass or not recipients:
+            reason = "Missing Zoho credentials or recipient emails configuration."
+            print(f"[CRON] Error for lead {lead_id}: {reason}")
             await db.bandwidth_settings.update_one(
                 {"lead_id": lead_id},
                 {
                     "$set": {
                         "last_run_at": now,
                         "last_run_status": "ERROR",
-                        "last_error": "Missing Zoho credentials or recipient emails configuration."
+                        "last_error": reason
                     }
                 }
             )
-            results.append({"lead_id": lead_id, "status": "ERROR", "reason": "Incomplete Configuration"})
+            results.append({"lead_id": lead_id, "status": "ERROR", "reason": reason})
             continue
 
         # Check bandwidth members
         members = await get_lead_members_with_bandwidth(lead_id, min_threshold)
+        print(f"[CRON] Lead {lead_id}: Found {len(members)} member(s) with bandwidth > {min_threshold}%")
         
         if not members:
             # Skip email because no members have bandwidth
@@ -377,23 +391,26 @@ async def process_daily_bandwidth_emails() -> Dict[str, Any]:
         # Decrypt password & send
         app_password = decrypt_string(encrypted_pass)
         if not app_password:
+            reason = "Failed to decrypt saved Zoho App Password."
+            print(f"[CRON] Error for lead {lead_id}: {reason}")
             await db.bandwidth_settings.update_one(
                 {"lead_id": lead_id},
                 {
                     "$set": {
                         "last_run_at": now,
                         "last_run_status": "ERROR",
-                        "last_error": "Failed to decrypt saved Zoho App Password."
+                        "last_error": reason
                     }
                 }
             )
-            results.append({"lead_id": lead_id, "status": "ERROR", "reason": "Decryption Failed"})
+            results.append({"lead_id": lead_id, "status": "ERROR", "reason": reason})
             continue
 
         subject = f"TeamTrack Daily Bandwidth Alert - {lead_name} ({len(members)} Member(s) Available)"
         html_content = build_bandwidth_email_html(lead_name, members, min_threshold)
 
         try:
+            print(f"[CRON] Sending email to {recipients} via {server}:{port}...")
             await send_zoho_bandwidth_email(
                 server=server,
                 port=port,
@@ -403,6 +420,7 @@ async def process_daily_bandwidth_emails() -> Dict[str, Any]:
                 subject=subject,
                 html_content=html_content
             )
+            print(f"[CRON] Email sent successfully for lead {lead_id}!")
             await db.bandwidth_settings.update_one(
                 {"lead_id": lead_id},
                 {
@@ -415,17 +433,22 @@ async def process_daily_bandwidth_emails() -> Dict[str, Any]:
             )
             results.append({"lead_id": lead_id, "status": "SUCCESS", "members_count": len(members)})
         except Exception as e:
+            err_msg = str(e)
+            print(f"[CRON] Exception sending email for lead {lead_id}: {err_msg}")
             await db.bandwidth_settings.update_one(
                 {"lead_id": lead_id},
                 {
                     "$set": {
                         "last_run_at": now,
                         "last_run_status": "ERROR",
-                        "last_error": str(e)
+                        "last_error": err_msg
                     }
                 }
             )
-            results.append({"lead_id": lead_id, "status": "ERROR", "reason": str(e)})
+            results.append({"lead_id": lead_id, "status": "ERROR", "reason": err_msg})
+
+    if settings_count == 0:
+        print("[CRON] No lead bandwidth settings found with is_enabled == True")
 
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
