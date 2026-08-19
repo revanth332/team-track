@@ -75,13 +75,22 @@ async def trigger_test_email(
 async def execute_cron_bandwidth_job(
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_cron_secret: Optional[str] = Header(None, alias="X-Cron-Secret"),
+    x_vercel_cron: Optional[str] = Header(None, alias="X-Vercel-Cron"),
     cron_secret: Optional[str] = Query(None)
 ):
     provided_secret = x_cron_secret or cron_secret
-    if not provided_secret and authorization and authorization.startswith("Bearer "):
-        provided_secret = authorization.replace("Bearer ", "").strip()
+    if not provided_secret and authorization:
+        parts = authorization.split()
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            provided_secret = parts[1].strip()
 
-    if not provided_secret or provided_secret != settings.CRON_SECRET:
+    # Match against configured CRON_SECRET
+    is_valid_secret = bool(provided_secret and settings.CRON_SECRET and provided_secret == settings.CRON_SECRET)
+    
+    # Check if request originated directly from Vercel Cron infrastructure
+    is_vercel_cron = x_vercel_cron is not None
+
+    if not is_valid_secret and not is_vercel_cron:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing Cron Secret header."
