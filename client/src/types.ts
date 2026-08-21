@@ -314,3 +314,38 @@ export interface TestEmailRequest {
   zoho_server?: string;
   zoho_port?: number;
 }
+
+export interface Leave {
+  id: string;
+  username: string;
+  lead_id?: string;
+  start_date: string;
+  end_date: string;
+  reason?: string;
+  status: 'active' | 'cancelled' | 'completed';
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface LeaveCreate {
+  username: string;
+  start_date: string;
+  end_date: string;
+  reason?: string;
+}
+
+export interface Holiday {
+  id: string;
+  name: string;
+  date: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface HolidayCreate {
+  name: string;
+  date: string;
+  description?: string;
+}
+

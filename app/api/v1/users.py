@@ -13,7 +13,7 @@ from app.schemas.user import (
     UserUpdate,
     UserResponse,
 )
-from app.services import user_service
+from app.services import user_service, leave_service
 
 router = APIRouter()
 
@@ -289,14 +289,30 @@ async def deassign_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return updated_user
 
-@router.put("/{user_id}", response_model=UserResponse, dependencies=[Depends(get_current_user)])
-async def update_member_profile(user_id: str, user_update: UserUpdate = Body(...)):
+@router.put("/{user_id}", response_model=UserResponse)
+async def update_member_profile(
+    user_id: str, 
+    user_update: UserUpdate = Body(...),
+    current_user: dict = Depends(get_current_user),
+):
     """
     Update skills, projects, or shift timings.
     """
-    updated_user = await user_service.update_user(user_id, user_update)
-    if not updated_user:
+    target_user = await user_service.get_user_by_id(user_id)
+    if not target_user:
         raise HTTPException(status_code=404, detail="Member not found")
+
+    username = target_user.get("username")
+    active_leave = await leave_service.get_active_leave_for_user(username)
+    current_pos = (current_user.get("position") or "").lower()
+
+    if active_leave and current_user.get("username") == username and current_pos not in ["manager", "superadmin", "lead"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"You are currently marked on leave (until {active_leave['end_date']}). Profile updates are disabled while on leave."
+        )
+
+    updated_user = await user_service.update_user(user_id, user_update)
     return updated_user
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)])

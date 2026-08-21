@@ -2,7 +2,7 @@ import asyncio
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 
 from app.core.database import get_database
@@ -13,6 +13,9 @@ from app.schemas.bandwidth import (
     BandwidthSettingsUpdate,
     TestEmailRequest
 )
+
+# IST timezone definition (UTC+5:30)
+IST = timezone(timedelta(hours=5, minutes=30))
 
 
 def _format_settings_response(doc: dict) -> BandwidthSettingsResponse:
@@ -107,15 +110,35 @@ async def save_lead_bandwidth_settings(
 async def get_lead_members_with_bandwidth(lead_id: str, min_threshold: int = 0) -> List[Dict[str, Any]]:
     """
     Finds all team members managed by lead_id and calculates their available bandwidth.
+    Excludes members currently on active leave for today.
     Filters members where bandwidth > min_threshold.
     """
     db = get_database()
+    today_ist = datetime.now(timezone.utc).astimezone(IST)
+    today_str = today_ist.strftime("%Y-%m-%d")
+    today = today_ist.date()
+
+    # Query active leaves for today in IST
+    active_leaves_cursor = db.leaves.find({
+        "status": "active",
+        "start_date": {"$lte": today_str},
+        "end_date": {"$gte": today_str}
+    })
+    users_on_leave = set()
+    async for l_doc in active_leaves_cursor:
+        if l_doc.get("username"):
+            users_on_leave.add(l_doc["username"].strip().lower())
+
     query = {"lead_id": lead_id, "position": {"$ne": "superadmin"}}
     
     available_members = []
-    today = datetime.now(timezone.utc).date()
     
     async for user in db.users.find(query).sort("name", 1):
+        username = (user.get("username") or "").strip().lower()
+        if username in users_on_leave:
+            print(f"[CRON] Member '{username}' is on leave today ({today_str}). Skipping from bandwidth report.")
+            continue
+
         active_projects = normalize_active_projects(user.get("active_projects", []))
         last_updated = user.get("last_updated")
         
@@ -320,15 +343,51 @@ async def test_zoho_credentials(lead_id: str, test_req: TestEmailRequest) -> Dic
             "message": f"Zoho SMTP Authentication/Connection Error: {str(e)}"
         }
 
+async def check_weekend_or_holiday(now_dt: Optional[datetime] = None) -> tuple[bool, str]:
+    """
+    Checks if the given datetime (defaults to current time in IST) is a weekend (Sat, Sun)
+    or a configured holiday in the 'holidays' collection.
+    Returns (is_blocked: bool, reason: str).
+    """
+    now_ist = (now_dt or datetime.now(timezone.utc)).astimezone(IST)
+    weekday = now_ist.weekday()  # Monday is 0, Sunday is 6
+    day_name = now_ist.strftime("%A")
+    date_str = now_ist.strftime("%Y-%m-%d")
+
+    # Weekend check (Saturday = 5, Sunday = 6)
+    if weekday in (5, 6):
+        return True, f"Weekend ({day_name}, {date_str})"
+
+    # Holiday check against database holidays collection
+    db = get_database()
+    holiday_doc = await db.holidays.find_one({"date": date_str})
+    if holiday_doc:
+        holiday_name = holiday_doc.get("name", "Holiday")
+        return True, f"Holiday ({holiday_name} on {date_str})"
+
+    return False, ""
+
 
 async def process_daily_bandwidth_emails() -> Dict[str, Any]:
     """
     Cron Job Worker:
-    1. Finds all bandwidth_settings with is_enabled == True.
-    2. Evaluates members with bandwidth > min_bandwidth_threshold.
-    3. If members exist, sends Zoho mail and updates last_run_status = 'SUCCESS'.
-    4. If no members exist, skips mail and updates last_run_status = 'SKIPPED_NO_BANDWIDTH_MEMBERS'.
+    1. Checks if today is a weekend or holiday from the 'holidays' collection; skips if true.
+    2. Finds all bandwidth_settings with is_enabled == True.
+    3. Evaluates members with bandwidth > min_bandwidth_threshold.
+    4. If members exist, sends Zoho mail and updates last_run_status = 'SUCCESS'.
+    5. If no members exist, skips mail and updates last_run_status = 'SKIPPED_NO_BANDWIDTH_MEMBERS'.
     """
+    is_blocked, reason = await check_weekend_or_holiday()
+    if is_blocked:
+        msg = f"Skipped processing: Today is a {reason}."
+        print(f"[CRON] {msg}")
+        return {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "processed_teams": 0,
+            "details": [],
+            "message": msg
+        }
+    
     db = get_database()
     enabled_cursor = db.bandwidth_settings.find({"is_enabled": True})
     
@@ -410,7 +469,7 @@ async def process_daily_bandwidth_emails() -> Dict[str, Any]:
         html_content = build_bandwidth_email_html(lead_name, members, min_threshold)
 
         try:
-            print(f"[CRON] Sending email to {recipients} via {server}:{port}...")
+            print(f"[CRON] Sending email...")
             await send_zoho_bandwidth_email(
                 server=server,
                 port=port,

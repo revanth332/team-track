@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
-import { TeamMember, UserCreate, UserRegister, Position, PaginatedUserResponse, ShiftLog, ShiftLogCreate, WeeklyUpdateApi, WeeklyUpdateApiCreate, Idea, IdeaCreate, LoginCredentials, LoginResponse, QuarterlyGoal, QuarterlyGoalCreate, Task, TaskCreate, TaskUpdate, TaskSubmission, TaskReview, PaginatedResponse, BandwidthSettings, BandwidthSettingsUpdate, TestEmailRequest } from '../types';
+import { TeamMember, UserCreate, UserRegister, Position, PaginatedUserResponse, ShiftLog, ShiftLogCreate, WeeklyUpdateApi, WeeklyUpdateApiCreate, Idea, IdeaCreate, LoginCredentials, LoginResponse, QuarterlyGoal, QuarterlyGoalCreate, Task, TaskCreate, TaskUpdate, TaskSubmission, TaskReview, PaginatedResponse, BandwidthSettings, BandwidthSettingsUpdate, TestEmailRequest, Leave, LeaveCreate, Holiday, HolidayCreate } from '../types';
 
 const API_URL = (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, '');
 
@@ -300,3 +300,53 @@ export const bandwidthService = {
     return response.data;
   },
 };
+
+export const leaveService = {
+  markLeave: async (data: LeaveCreate): Promise<Leave> => {
+    const response = await api.post('/api/v1/leaves', data);
+    return response.data;
+  },
+  getActiveLeaves: async (lead_id?: string, date?: string): Promise<Leave[]> => {
+    const params = new URLSearchParams();
+    if (lead_id) params.append('lead_id', lead_id);
+    if (date) params.append('date', date);
+    const response = await api.get(`/api/v1/leaves/active${params.toString() ? `?${params.toString()}` : ''}`);
+    return response.data;
+  },
+  getUserActiveLeave: async (username: string, date?: string): Promise<Leave | null> => {
+    const params = new URLSearchParams();
+    if (date) params.append('date', date);
+    const response = await api.get(`/api/v1/leaves/user/${username}/active${params.toString() ? `?${params.toString()}` : ''}`);
+    return response.data;
+  },
+  getUserLeaves: async (username: string): Promise<Leave[]> => {
+    const response = await api.get(`/api/v1/leaves/user/${username}`);
+    return response.data;
+  },
+  endLeaveEarly: async (leaveId: string): Promise<Leave> => {
+    const response = await api.post(`/api/v1/leaves/${leaveId}/end-early`);
+    return response.data;
+  },
+  deleteLeave: async (leaveId: string): Promise<{ message: string; id: string }> => {
+    const response = await api.delete(`/api/v1/leaves/${leaveId}`);
+    return response.data;
+  },
+};
+
+export const holidayService = {
+  getHolidays: async (year?: number): Promise<Holiday[]> => {
+    const params = new URLSearchParams();
+    if (year) params.append('year', year.toString());
+    const response = await api.get(`/api/v1/holidays${params.toString() ? `?${params.toString()}` : ''}`);
+    return response.data;
+  },
+  createHoliday: async (data: HolidayCreate): Promise<Holiday> => {
+    const response = await api.post('/api/v1/holidays', data);
+    return response.data;
+  },
+  deleteHoliday: async (id: string): Promise<{ message: string; id: string }> => {
+    const response = await api.delete(`/api/v1/holidays/${id}`);
+    return response.data;
+  },
+};
+

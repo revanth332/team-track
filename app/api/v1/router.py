@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1 import ideas, shifts, updates, users, auth, goals, tasks, bandwidth
+from app.api.v1 import ideas, shifts, updates, users, auth, goals, tasks, bandwidth, holidays, leaves
 
 # Create the master router for version 1 of the API
 api_router = APIRouter()
@@ -16,3 +16,5 @@ api_router.include_router(ideas.router, prefix="/ideas", tags=["Ideas Backlog"])
 api_router.include_router(goals.router, prefix="/goals", tags=["Quarterly Goals"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["Tasks"])
 api_router.include_router(bandwidth.router, prefix="/bandwidth", tags=["Bandwidth Notifications"])
+api_router.include_router(holidays.router, prefix="/holidays", tags=["Holidays"])
+api_router.include_router(leaves.router, prefix="/leaves", tags=["Leaves"])

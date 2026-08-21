@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Briefcase, Hash, Code, Cake, Clock, AtSign, Layout, ShieldCheck, Plus, Trash2, Save, Loader2, FileSpreadsheet, PieChart, AlertTriangle, Edit, Search, X } from 'lucide-react';
+import { User, Mail, Briefcase, Hash, Code, Cake, Clock, AtSign, Layout, ShieldCheck, Plus, Trash2, Save, Loader2, FileSpreadsheet, PieChart, AlertTriangle, Edit, Search, X, CalendarOff } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { teamService } from '../services/api';
+import { teamService, leaveService } from '../services/api';
 import { UserCreate, TeamMember, ActiveProject } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -31,6 +31,12 @@ export default function Profile() {
   const { data: currentUserData, isLoading: isFetching } = useQuery({
     queryKey: ['user-detail'],
     queryFn: () => teamService.getUserDetail(),
+  });
+
+  const { data: userActiveLeave } = useQuery({
+    queryKey: ['user-active-leave', currentUserData?.username],
+    queryFn: () => currentUserData?.username ? leaveService.getUserActiveLeave(currentUserData.username) : null,
+    enabled: !!currentUserData?.username,
   });
 
   const [formData, setFormData] = useState<UserCreate & { shift_sheet_name?: string }>({
@@ -193,8 +199,23 @@ export default function Profile() {
         <p className="text-on-surface-variant font-medium">Manage your personal information, work schedule, and project portfolio.</p>
       </header>
 
+      {/* Active Leave Banner */}
+      {userActiveLeave && (
+        <div className="p-4 bg-amber-500/15 border border-amber-500/40 rounded-2xl flex items-center gap-3.5 text-amber-950 dark:text-amber-200 shadow-sm">
+          <div className="p-2.5 bg-amber-500/20 rounded-xl shrink-0 text-amber-600 dark:text-amber-400">
+            <CalendarOff size={22} />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-bold">You are Currently Marked on Leave</h4>
+            <p className="text-xs font-medium opacity-90 mt-0.5">
+              Your team lead has marked you on leave from <strong>{userActiveLeave.start_date}</strong> to <strong>{userActiveLeave.end_date}</strong>{userActiveLeave.reason ? ` (${userActiveLeave.reason})` : ''}. Profile and project editing are temporarily locked.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Outdated Bandwidth Warning Banner */}
-      {isBandwidthOutdated && (
+      {isBandwidthOutdated && !userActiveLeave && (
         <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-3.5 text-amber-900 dark:text-amber-300 shadow-sm">
           <div className="p-2.5 bg-amber-500/20 rounded-xl shrink-0 text-amber-600 dark:text-amber-400">
             <AlertTriangle size={22} />
@@ -424,7 +445,8 @@ export default function Profile() {
                 <button 
                   type="button"
                   onClick={handleOpenAddProjectModal}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-colors self-start sm:self-auto"
+                  disabled={!!userActiveLeave}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold hover:bg-primary/20 transition-colors self-start sm:self-auto disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Plus size={14} />
                   Add Project
@@ -485,7 +507,8 @@ export default function Profile() {
                               <button 
                                 type="button"
                                 onClick={() => handleOpenEditProjectModal(originalIndex)}
-                                className="p-1.5 text-on-surface-variant/60 hover:text-primary transition-colors rounded-lg hover:bg-primary/5"
+                                disabled={!!userActiveLeave}
+                                className="p-1.5 text-on-surface-variant/60 hover:text-primary transition-colors rounded-lg hover:bg-primary/5 disabled:opacity-30 disabled:cursor-not-allowed"
                                 title="Edit Project"
                               >
                                 <Edit size={14} />
@@ -493,7 +516,8 @@ export default function Profile() {
                               <button 
                                 type="button"
                                 onClick={() => handleRemoveProject(originalIndex)}
-                                className="p-1.5 text-on-surface-variant/60 hover:text-error transition-colors rounded-lg hover:bg-error/5"
+                                disabled={!!userActiveLeave}
+                                className="p-1.5 text-on-surface-variant/60 hover:text-error transition-colors rounded-lg hover:bg-error/5 disabled:opacity-30 disabled:cursor-not-allowed"
                                 title="Delete Project"
                               >
                                 <Trash2 size={14} />
@@ -539,13 +563,18 @@ export default function Profile() {
             <div className="flex justify-end pt-6 border-t border-outline-variant/10">
               <button 
                 type="submit"
-                disabled={updateMutation.isPending || isOverOccupied}
+                disabled={updateMutation.isPending || isOverOccupied || !!userActiveLeave}
                 className="primary-gradient text-on-primary px-12 py-4 rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
               >
                 {updateMutation.isPending ? (
                   <>
                     <Loader2 size={20} className="animate-spin" />
                     <span>Saving Changes...</span>
+                  </>
+                ) : userActiveLeave ? (
+                  <>
+                    <CalendarOff size={20} />
+                    <span>Profile Locked (On Leave)</span>
                   </>
                 ) : (
                   <>
