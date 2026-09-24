@@ -2,10 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
 from app.api.dependencies import get_current_user
 from app.schemas.shift import ShiftResponse
 from app.services import sheet_service
+from app.services.metrics_service import METRIC_SHIFTS_CALLS, increment_daily_metric_safe
 from app.schemas.sheet import GetSheetRequest, UpdateSheetRequest, CreateSheetRequest
 
+
+async def record_shifts_metric():
+    await increment_daily_metric_safe(
+        METRIC_SHIFTS_CALLS,
+        metadata={"path": "/shifts"},
+    )
+
+
 # Prefix and tags are handled in router.py!
-router = APIRouter() 
+router = APIRouter(dependencies=[Depends(record_shifts_metric)])
 
 # @router.get("/", response_model=List[ShiftResponse])
 @router.get("/")

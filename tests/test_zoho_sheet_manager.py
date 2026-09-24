@@ -4,7 +4,7 @@ import asyncio
 from unittest.mock import AsyncMock, Mock, patch
 import httpx
 
-from app.core.token_manager import TokenManager
+from app.core.token_manager import TokenManager, ZohoTokenError
 from app.services.zoho_sheet_manager import ZohoSheetManager, ZohoAPIError
 
 
@@ -23,6 +23,14 @@ class FakeResponse:
 
 
 class TestTokenManager(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.metric_patch = patch(
+            "app.core.token_manager.increment_daily_metric_safe",
+            new_callable=AsyncMock,
+        )
+        self.mock_metric = self.metric_patch.start()
+        self.addCleanup(self.metric_patch.stop)
+
     async def test_get_zoho_token_success(self):
         token_manager = TokenManager()
         
@@ -40,6 +48,7 @@ class TestTokenManager(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(token_manager.access_token, "fake_access_token_123")
         self.assertGreater(token_manager.expires_at, time.time())
         mock_client.post.assert_called_once()
+        self.mock_metric.assert_awaited_once()
 
     async def test_get_zoho_token_caching(self):
         token_manager = TokenManager()
@@ -52,6 +61,23 @@ class TestTokenManager(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(token, "cached_token")
         mock_client.post.assert_not_called()
+        self.mock_metric.assert_not_awaited()
+
+    async def test_get_zoho_token_invalid_code_has_actionable_error(self):
+        token_manager = TokenManager()
+
+        mock_client = AsyncMock()
+        mock_client.post.return_value = FakeResponse(
+            status_code=400,
+            json_data={"error": "invalid_code"}
+        )
+
+        with patch("app.core.token_manager.get_http_client", return_value=mock_client):
+            with self.assertRaises(ZohoTokenError) as err:
+                await token_manager.get_zoho_token()
+
+        self.assertIn("ZOHO_REFRESH_TOKEN", str(err.exception))
+        self.assertIn("invalid or revoked", str(err.exception))
 
     async def test_get_zoho_token_concurrency_lock(self):
         token_manager = TokenManager()
@@ -81,6 +107,7 @@ class TestTokenManager(unittest.IsolatedAsyncioTestCase):
         
         # And HTTP POST should only have been called EXACTLY ONCE
         mock_client.post.assert_called_once()
+        self.mock_metric.assert_awaited_once()
 
 
 class TestZohoSheetManager(unittest.IsolatedAsyncioTestCase):
