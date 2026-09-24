@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Rocket, Video, RefreshCw, TrendingUp, Clock, Info, Flag, CalendarOff, AlertCircle, FileText, Clapperboard, CalendarClock, Lightbulb, FileVideo, ArrowRightLeft, Users, ChevronDown, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { goalService, shiftService, teamService, weeklyUpdateService, ideaService, setGlobalLeadId } from '../services/api';
+import { goalService, teamService, weeklyUpdateService, ideaService, setGlobalLeadId } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useFilter } from '../context/FilterContext';
 import { motion } from 'motion/react';
@@ -34,17 +34,6 @@ export default function Dashboard() {
     }),
   });
 
-  const { data: shifts, isLoading: shiftsLoading, isError: shiftsError } = useQuery({
-    queryKey: ['shifts', selectedAssignee?.name, now.getFullYear(), now.getMonth() + 1, effectiveLeadId],
-    queryFn: () => shiftService.getShifts({ 
-      name: selectedAssignee?.name || undefined,
-      year: now.getFullYear().toString(),
-      month: (now.getMonth() + 1).toString()
-    }),
-    enabled: !isManager,
-    retry: false
-  });
-
   const { data: bandwidthData, isLoading: bandwidthLoading, isError: bandwidthError } = useQuery({
     queryKey: ['bandwidth', effectiveLeadId],
     queryFn: () => teamService.getMemberBandwidth(effectiveLeadId),
@@ -64,7 +53,7 @@ export default function Dashboard() {
     })
   });
 
-  const isLoading = bandwidthLoading || goalsLoading || shiftsLoading || weeklyUpdatesLoading || ideasLoading;
+  const isLoading = bandwidthLoading || goalsLoading || weeklyUpdatesLoading || ideasLoading;
   const membersError = bandwidthError; // Map to keep backward compatibility with error layout if any
 
   const [activeGoalTab, setActiveGoalTab] = useState<'year' | 'quarter'>('quarter');
@@ -139,12 +128,6 @@ export default function Dashboard() {
   ].filter(d => d.value > 0);
 
   const currentYear = new Date().getFullYear();
-  const activeShiftChanges = (shifts || []).filter(s => !s.lead_approval || s.lead_approval === 'Pending') || [];
-
-  const getUsernameByEmpname = (name: string) => {
-    const member = bandwidthData?.find(m => String(m.name) === String(name));
-    return member?.username;
-  };
 
   const currentDate = new Date();
   const dayOfWeek = currentDate.getDay(); // 0 (Sun) to 6 (Sat)
@@ -319,71 +302,84 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {!isManager && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/5 group flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest mb-2">Pending Shift Changes</p>
-                  <h3 className="text-5xl font-bold text-on-surface">
-                    {shiftsError ? (
-                      <span className="text-error text-xl flex items-center gap-1"><AlertCircle size={18} /> Error</span>
-                    ) : (
-                      <>{activeShiftChanges.length} <span className="text-lg font-medium text-on-surface-variant/40">pending</span></>
-                    )}
-                  </h3>
-                </div>
-                <div className="w-12 h-12 bg-secondary-container rounded-xl flex items-center justify-center text-on-secondary-container group-hover:scale-110 transition-transform">
-                  <ArrowRightLeft size={24} />
-                </div>
+        {/* Team Utilization Widget */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/5 overflow-hidden flex flex-col justify-between"
+        >
+          <div className="px-6 py-4 bg-white flex justify-between items-center border-b border-outline-variant/5">
+            <h4 className="font-bold text-on-surface flex items-center gap-2 text-sm">
+              <Users size={18} className="text-primary" />
+              <span>Team Utilization</span>
+            </h4>
+            <span className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest pl-2">
+              Sorted by Bandwidth
+            </span>
+          </div>
+          <div className="p-4 space-y-2 max-h-[190px] overflow-y-auto flex-1">
+            {bandwidthError ? (
+              <div className="p-6 flex flex-col items-center gap-1 text-on-surface-variant font-medium text-xs opacity-60">
+                <AlertCircle size={20} className="text-error mb-1" />
+                <span>Failed to load team data</span>
               </div>
-              <div className="flex -space-x-2 mb-4 overflow-hidden">
-                {activeShiftChanges.slice(0, 5).map((shift, index) => {
-                  const username = getUsernameByEmpname(shift.name);
-                  return (
-                    <div 
-                      key={`${shift.id}-${index}`}
-                      className="w-8 h-8 rounded-full border-2 border-white bg-surface-container-high flex items-center justify-center text-[10px] font-bold text-primary shadow-sm overflow-hidden relative"
-                    >
-                      {username ? (
-                        <img 
-                          src={getProfileImage(username)} 
-                          alt={shift.name}
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ) : null}
-                      <span className="absolute inset-0 flex items-center justify-center -z-10">
-                        {shift.name?.charAt(0) || '?'}
+            ) : [...(bandwidthData || [])].filter(m => m.bandwidth > 0).length > 0 ? (
+              [...(bandwidthData || [])]
+              .filter(m => m.bandwidth > 0)
+              .sort((a, b) => a.bandwidth - b.bandwidth)
+              .map((member, index) => {
+                const bw = member.bandwidth;
+                return (
+                  <div key={`${member.username}-${index}`} title={member.name} className="bg-surface-container-low/40 p-2 rounded-xl flex items-center gap-3 group hover:shadow-xs transition-shadow">
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-surface-container-high relative border border-outline-variant/10">
+                      <img 
+                        src={getProfileImage(member.username)} 
+                        alt={member.name}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${member.username}/100/100`;
+                        }}
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center -z-10 text-[9px] font-bold text-on-surface-variant">
+                        {member.name?.charAt(0) || '?'}
                       </span>
                     </div>
-                  );
-                })}
-                {activeShiftChanges.length > 5 && (
-                  <div key="more-shifts-indicator" className="w-8 h-8 rounded-full border-2 border-white bg-surface-container-high flex items-center justify-center text-[10px] font-bold text-on-surface-variant">
-                    +{(activeShiftChanges.length) - 5}
+                    <div className="flex-1 flex items-center gap-2">
+                      <span className="text-xs font-semibold text-on-surface truncate max-w-[90px]" title={member.name}>
+                        {member.name}
+                      </span>
+                      <div className="flex-1 h-2 bg-surface-container rounded-full overflow-hidden shadow-inner border border-outline-variant/5">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${bw}%` }}
+                          transition={{ duration: 1.2, ease: "easeOut", delay: index * 0.05 }}
+                          className={`h-full rounded-full shadow-xs ${
+                            bw > 80 ? 'bg-linear-to-r from-error/60 to-error' : bw >= 40 ? 'bg-linear-to-r from-amber-400 to-amber-600' : 'bg-linear-to-r from-green-400 to-green-600'
+                          }`}
+                        />
+                      </div>
+                      <span className={`text-[10px] font-bold min-w-[28px] text-right ${
+                        bw > 80 ? 'text-error' : bw >= 40 ? 'text-amber-500' : 'text-green-600'
+                      }`}>
+                        {bw}%
+                      </span>
+                    </div>
                   </div>
-                )}
+                );
+              })
+            ) : (
+              <div className="p-6 text-center text-on-surface-variant text-xs font-medium opacity-60">
+                No active members found.
               </div>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-on-surface-variant mt-4">
-              <Info size={14} className="text-indigo-500" />
-              <span>Pending lead approvals</span>
-            </div>
-          </motion.div>
-        )}
+            )}
+          </div>
+        </motion.div>
       </section>
 
-      {/* Analytics Charts & Utilization Section */}
-      <section className={`grid grid-cols-1 ${!isManager ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-8`}>
+      {/* Analytics Charts Section */}
+      <section className={`grid grid-cols-1 ${!isManager ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-8`}>
         {!isManager && (
           <div className="bg-surface-container-low rounded-3xl overflow-hidden border border-outline-variant/10 flex flex-col">
             <div className="px-6 py-4 bg-white flex justify-between items-center border-b border-outline-variant/5">
@@ -494,73 +490,6 @@ export default function Dashboard() {
                   <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mt-1">Ideas</span>
                 </div>
               </>
-            )}
-          </div>
-        </div>
-
-        {/* Team Utilization Widget */}
-        <div className="bg-surface-container-low rounded-3xl overflow-hidden border border-outline-variant/10">
-          <div className="px-8 py-6 bg-white flex justify-between items-center border-b border-outline-variant/5">
-            <h4 className="font-bold text-on-surface flex items-center gap-3">
-              <Users size={20} className="text-primary" />
-              <span>Team Utilization</span>
-            </h4>
-            <span className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest pl-4">
-              Sorted by Bandwidth
-            </span>
-          </div>
-          <div className="p-4 space-y-2 max-h-[400px] overflow-y-auto">
-            {bandwidthError ? (
-              <div className="p-12 flex flex-col items-center gap-1 text-on-surface-variant font-medium text-xs opacity-60">
-                <AlertCircle size={24} className="text-error mb-1" />
-                <span>Failed to load team data</span>
-              </div>
-            ) : [...(bandwidthData || [])].filter(m => m.bandwidth > 0).length > 0 ? (
-              [...(bandwidthData || [])]
-              .filter(m => m.bandwidth > 0)
-              .sort((a, b) => a.bandwidth - b.bandwidth)
-              .map((member, index) => {
-                const bw = member.bandwidth;
-                return (
-                  <div key={`${member.username}-${index}`} title={member.name} className="bg-white p-3 rounded-2xl flex items-center gap-4 group hover:shadow-sm transition-shadow">
-                    <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-surface-container-high relative border border-outline-variant/10">
-                      <img 
-                        src={getProfileImage(member.username)} 
-                        alt={member.name}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${member.username}/100/100`;
-                        }}
-                      />
-                      <span className="absolute inset-0 flex items-center justify-center -z-10 text-[10px] font-bold text-on-surface-variant">
-                        {member.name?.charAt(0) || '?'}
-                      </span>
-                    </div>
-                    <div className="flex-1 flex items-center gap-3">
-                      <div className="flex-1 h-2.5 bg-surface-container rounded-full overflow-hidden shadow-inner border border-outline-variant/5">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${bw}%` }}
-                          transition={{ duration: 1.2, ease: "easeOut", delay: index * 0.05 }}
-                          className={`h-full rounded-full shadow-xs ${
-                            bw > 80 ? 'bg-linear-to-r from-error/60 to-error' : bw >= 40 ? 'bg-linear-to-r from-amber-400 to-amber-600' : 'bg-linear-to-r from-green-400 to-green-600'
-                          }`}
-                        />
-                      </div>
-                      <span className={`text-[11px] font-bold min-w-[32px] text-right ${
-                        bw > 80 ? 'text-error' : bw >= 40 ? 'text-amber-500' : 'text-green-600'
-                      }`}>
-                        {bw}%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="p-8 text-center text-on-surface-variant font-medium opacity-60">
-                No active members found.
-              </div>
             )}
           </div>
         </div>

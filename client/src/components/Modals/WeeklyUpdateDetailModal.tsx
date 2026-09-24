@@ -40,9 +40,9 @@ export default function WeeklyUpdateDetailModal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="relative bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
           >
-            <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center text-primary font-bold shadow-sm">
+            <div className="p-5 sm:p-8 border-b border-outline-variant/10 flex items-start sm:items-center justify-between gap-3 shrink-0">
+              <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center text-primary font-bold shadow-sm shrink-0 mt-0.5 sm:mt-0">
                   {update.username ? (
                     <img 
                       src={getProfileImage(update.username)} 
@@ -55,50 +55,41 @@ export default function WeeklyUpdateDetailModal({
                   )}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-on-surface">{update.name || update.username}</h3>
-                  <div className="flex items-center gap-3 mt-1">
-                    <div className="flex items-center gap-1.5 text-xs text-on-surface-variant font-medium">
-                      <UserCircle size={14} className="opacity-40" />
+                  <h3 className="text-lg sm:text-xl font-bold text-on-surface leading-snug">{update.name || update.username}</h3>
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 mt-1.5 sm:mt-2">
+                    <div className="inline-flex items-center gap-1.5 text-xs text-on-surface-variant font-medium bg-surface-container-low px-2.5 py-0.5 sm:py-1 rounded-lg">
+                      <UserCircle size={14} className="text-on-surface-variant/70" />
                       <span>{update.role}</span>
                     </div>
                     {update.occupancy !== undefined && (
-                      <>
-                        <div className="w-1 h-1 rounded-full bg-outline-variant/40" />
-                        <div className="flex items-center gap-1.5 text-xs text-primary font-bold">
-                          <Percent size={14} className="opacity-60" />
-                          <span>{update.occupancy}% Occupancy</span>
-                        </div>
-                      </>
+                      <div className="inline-flex items-center gap-1 text-xs text-primary font-bold bg-primary/10 px-2.5 py-0.5 sm:py-1 rounded-lg">
+                        <Percent size={13} className="text-primary/70" />
+                        <span>{update.occupancy}% Occupancy</span>
+                      </div>
                     )}
                     {update.seen_by_lead ? (
-                      <>
-                        <div className="w-1 h-1 rounded-full bg-outline-variant/40" />
-                        <div className="flex items-center gap-1.5 text-xs text-primary font-bold">
-                          <CheckCheck size={14} />
-                          <span>Seen By Lead</span>
-                        </div>
-                      </>
+                      <div className="inline-flex items-center gap-1.5 text-xs text-green-700 bg-green-100 font-bold px-2.5 py-0.5 sm:py-1 rounded-lg">
+                        <CheckCheck size={14} />
+                        <span>Seen By Lead</span>
+                      </div>
                     ) : (
-                      <>
-                        <div className="w-1 h-1 rounded-full bg-outline-variant/40" />
-                        <div className="flex items-center gap-1.5 text-xs text-primary font-bold">
-                          <Check size={14} />
-                          <span>Update Sent</span>
-                        </div>
-                      </>
+                      <div className="inline-flex items-center gap-1.5 text-xs text-primary font-bold bg-primary/10 px-2.5 py-0.5 sm:py-1 rounded-lg">
+                        <Check size={14} />
+                        <span>Update Sent</span>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 rounded-xl hover:bg-surface-container transition-colors text-on-surface-variant"
+                className="p-2 rounded-xl hover:bg-surface-container transition-colors text-on-surface-variant shrink-0"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-8">
+            <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6 sm:space-y-8">
               <div className="space-y-6">
                 <h4 className="text-sm font-bold text-on-surface uppercase tracking-wider flex items-center gap-2 px-1">
                   <Layout size={16} className="text-primary" />
@@ -107,13 +98,13 @@ export default function WeeklyUpdateDetailModal({
                 
                 <div className="space-y-6">
                   {update.projects.map((project, index) => (
-                    <div key={index} className="bg-surface-container-low/30 p-6 rounded-3xl border border-outline-variant/10">
-                      <div className="flex items-center justify-between mb-4 pb-4 border-b border-outline-variant/5">
+                    <div key={index} className="bg-surface-container-low/30 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-outline-variant/10">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-4 border-b border-outline-variant/5">
                         <div className="flex items-center gap-2">
-                          <Layout size={18} className="text-primary" />
-                          <h5 className="font-bold text-on-surface">{project.project_name}</h5>
+                          <Layout size={18} className="text-primary shrink-0" />
+                          <h5 className="font-bold text-on-surface text-sm sm:text-base break-words">{project.project_name}</h5>
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high text-[10px] font-bold text-on-surface-variant uppercase tracking-wider self-start sm:self-auto">
                           <Briefcase size={12} />
                           <span>{project.client}</span>
                         </div>
@@ -154,13 +145,13 @@ export default function WeeklyUpdateDetailModal({
               </div>
             </div>
 
-            <div className="p-6 bg-surface-container-lowest border-t border-outline-variant/10 flex justify-between items-center shrink-0">
+            <div className="p-4 sm:p-6 bg-surface-container-lowest border-t border-outline-variant/10 flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3 shrink-0">
               <div>
                 {user?.admin && onSeen && (
                   <button 
                     onClick={() => onSeen(update.id)}
                     disabled={update.seen_by_lead || isSeenPending}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${
+                    className={`w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all ${
                       update.seen_by_lead 
                         ? 'bg-primary/10 text-primary cursor-default' 
                         : 'primary-gradient text-on-primary shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:scale-100'
@@ -177,7 +168,7 @@ export default function WeeklyUpdateDetailModal({
               </div>
               <button 
                 onClick={onClose}
-                className="px-8 py-3 bg-surface-container-low text-on-surface-variant font-bold text-sm rounded-2xl hover:bg-surface-container transition-colors"
+                className="w-full sm:w-auto px-8 py-3 bg-surface-container-low text-on-surface-variant font-bold text-sm rounded-2xl hover:bg-surface-container transition-colors"
               >
                 Close Details
               </button>

@@ -38,7 +38,6 @@ export default function Sidebar({ currentView, onViewChange, isOpen, onClose }: 
     { id: 'ideas', label: 'Ideas', icon: Lightbulb },
     { id: 'goals', label: 'Quarterly Goals', icon: Target },
     { id: 'weekly-updates', label: 'Weekly Updates', icon: History },
-    { id: 'shifts', label: 'Shift Logs', icon: Clock },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
   ] as const;
 

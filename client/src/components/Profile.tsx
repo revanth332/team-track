@@ -193,7 +193,7 @@ export default function Profile() {
   const isOverOccupied = totalOccupancy > 100;
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-10 pb-24">
+    <div className="p-4 sm:p-8 max-w-4xl mx-auto space-y-8 sm:space-y-10 pb-24">
       <header className="space-y-1">
         <h2 className="text-3xl font-bold tracking-tight text-on-surface">My Profile</h2>
         <p className="text-on-surface-variant font-medium">Manage your personal information, work schedule, and project portfolio.</p>
@@ -303,7 +303,7 @@ export default function Profile() {
 
         {/* Right column: Form */}
         <form onSubmit={handleSubmit} className="lg:w-2/3 space-y-8">
-          <div className="bg-surface-container-lowest p-8 rounded-3xl shadow-sm border border-outline-variant/10 space-y-8">
+          <div className="bg-surface-container-lowest p-5 sm:p-8 rounded-3xl shadow-sm border border-outline-variant/10 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 px-1">Full Name</label>
@@ -466,17 +466,17 @@ export default function Profile() {
               </div>
               
               {/* Scrollable list of projects */}
-              <div className="max-h-[380px] overflow-y-auto pr-2 space-y-4 custom-scrollbar border border-outline-variant/10 rounded-2xl p-4 bg-surface-container-low/20">
+              <div className="max-h-[380px] overflow-y-auto pr-1 sm:pr-2 space-y-4 custom-scrollbar border border-outline-variant/10 rounded-2xl p-3 sm:p-4 bg-surface-container-low/20">
                 {activeProjects.length > 0 ? (
                   activeProjects
                     .map((project, index) => ({ project, originalIndex: index }))
                     .filter(item => item.project.title.toLowerCase().includes(projectSearch.toLowerCase()))
                     .map(({ project, originalIndex }) => (
-                      <div key={originalIndex} className="bg-surface-container-low/40 rounded-2xl p-4 border border-outline-variant/10 space-y-3">
-                        <div className="flex items-start justify-between gap-4">
+                      <div key={originalIndex} className="bg-surface-container-low/40 rounded-2xl p-3.5 sm:p-4 border border-outline-variant/10 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-on-surface text-sm truncate" title={project.title}>{project.title}</h4>
-                            <div className="flex flex-wrap gap-2 items-center mt-1.5">
+                            <h4 className="font-bold text-on-surface text-sm break-words" title={project.title}>{project.title}</h4>
+                            <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center mt-1.5">
                               <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider ${
                                 project.is_active 
                                   ? 'bg-green-100 text-green-700' 
@@ -485,25 +485,25 @@ export default function Profile() {
                                 {project.is_active ? 'Currently Active' : 'Project Completed'}
                               </span>
                               {project.client && (
-                                <span className="bg-primary/5 text-primary px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider truncate max-w-[150px]" title={project.client}>
+                                <span className="bg-primary/5 text-primary px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider truncate max-w-[140px] sm:max-w-[180px]" title={project.client}>
                                   Client: {project.client}
                                 </span>
                               )}
                               {project.role && (
-                                <span className="bg-secondary/5 text-secondary px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider truncate max-w-[150px]" title={project.role}>
+                                <span className="bg-secondary/5 text-secondary px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider truncate max-w-[140px] sm:max-w-[180px]" title={project.role}>
                                   Role: {project.role}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0">
+                          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-outline-variant/10">
                             {project.is_active && (
-                              <div className="text-right">
+                              <div className="text-left sm:text-right">
                                 <p className="text-xs font-bold text-primary">{project.occupancy}%</p>
                                 <p className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-widest mt-0.5">Occupancy</p>
                               </div>
                             )}
-                            <div className="flex items-center gap-1.5 ml-2 border-l border-outline-variant/20 pl-3">
+                            <div className="flex items-center gap-1.5 ml-auto sm:ml-2 sm:border-l sm:border-outline-variant/20 sm:pl-3">
                               <button 
                                 type="button"
                                 onClick={() => handleOpenEditProjectModal(originalIndex)}
@@ -527,7 +527,7 @@ export default function Profile() {
                         </div>
                         
                         {project.description ? (
-                          <p className="text-xs text-on-surface-variant/70 leading-relaxed font-medium">
+                          <p className="text-xs text-on-surface-variant/70 leading-relaxed font-medium break-words">
                             {project.description}
                           </p>
                         ) : (

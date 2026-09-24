@@ -9,7 +9,6 @@ import TopBar from './components/TopBar';
 import Dashboard from './components/Dashboard';
 import TeamDirectory from './components/TeamDirectory';
 import GoalsTracker from './components/GoalsTracker';
-import ShiftLogs from './components/ShiftLogs';
 import WeeklyUpdates from './components/WeeklyUpdates';
 import Ideas from './components/Ideas';
 import Tasks from './components/Tasks';
@@ -17,7 +16,6 @@ import MyTeam from './components/MyTeam';
 import PositionAssignment from './components/PositionAssignment';
 import Profile from './components/Profile';
 import LoginPage from './components/LoginPage';
-import ShiftChangeModal from './components/Modals/ShiftChangeModal';
 import WeeklyAchievementModal from './components/Modals/WeeklyAchievementModal';
 import UpdatePasswordModal from './components/Modals/UpdatePasswordModal';
 import { View } from './types';
@@ -31,7 +29,6 @@ export default function App() {
   const { user, login, isAuthenticated } = useAuth();
   const { selectedLeadId } = useFilter();
   const [currentView, setCurrentView] = useState<View>('dashboard');
-  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isAchievementModalOpen, setIsAchievementModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -64,8 +61,6 @@ export default function App() {
         return <TeamDirectory />;
       case 'goals':
         return <GoalsTracker />;
-      case 'shifts':
-        return <ShiftLogs onNavigateToProfile={() => setCurrentView('profile')} />;
       case 'weekly-updates':
         return <WeeklyUpdates onAddUpdate={() => setIsAchievementModalOpen(true)} />;
       case 'ideas':
@@ -119,10 +114,6 @@ export default function App() {
       </div>
 
       {/* Modals */}
-      <ShiftChangeModal 
-        isOpen={isShiftModalOpen} 
-        onClose={() => setIsShiftModalOpen(false)} 
-      />
       <WeeklyAchievementModal 
         isOpen={isAchievementModalOpen} 
         onClose={() => setIsAchievementModalOpen(false)} 
