@@ -104,9 +104,19 @@ export default function WeeklyUpdateDetailModal({
                           <Layout size={18} className="text-primary shrink-0" />
                           <h5 className="font-bold text-on-surface text-sm sm:text-base break-words">{project.project_name}</h5>
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high text-[10px] font-bold text-on-surface-variant uppercase tracking-wider self-start sm:self-auto">
-                          <Briefcase size={12} />
-                          <span>{project.client}</span>
+                        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                          {project.role && (
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                              <UserCircle size={12} className="text-on-surface-variant/70" />
+                              <span>{project.role}</span>
+                            </div>
+                          )}
+                          {project.client && (
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                              <Briefcase size={12} />
+                              <span>{project.client}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-4">

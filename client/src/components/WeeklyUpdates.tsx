@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronRight, Calendar, Plus, Edit, Hand, Briefcase, Layout, Percent, Loader2, AlertCircle, Trash2, ThumbsUp, Check, CheckCheck, Download, FileText } from 'lucide-react';
+import { ChevronRight, Calendar, Plus, Edit, Hand, Briefcase, Layout, Percent, Loader2, AlertCircle, Trash2, ThumbsUp, Check, CheckCheck, Download, FileText, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFilter } from '../context/FilterContext';
@@ -331,14 +331,24 @@ export default function WeeklyUpdates({ onAddUpdate }: WeeklyUpdatesProps) {
               <div className="space-y-4 flex-1">
                 {update.projects.slice(0, 1).map((project: any, pIndex: number) => (
                   <div key={pIndex} className="bg-surface-container-low/30 p-4 rounded-2xl border border-outline-variant/5">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <Layout size={12} className="text-primary shrink-0" />
                         <span className="text-[10px] font-bold text-on-surface uppercase tracking-wider truncate">{project.project_name}</span>
                       </div>
-                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-container-high text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">
-                        <Briefcase size={10} />
-                        <span>{project.client}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+                        {project.role && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-container-high text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">
+                            <UserCircle size={10} />
+                            <span>{project.role}</span>
+                          </div>
+                        )}
+                        {project.client && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-container-high text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">
+                            <Briefcase size={10} />
+                            <span>{project.client}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div 
